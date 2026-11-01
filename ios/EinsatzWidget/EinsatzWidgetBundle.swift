@@ -5,5 +5,8 @@ import SwiftUI
 struct EinsatzWidgetBundle: WidgetBundle {
     var body: some Widget {
         EinsatzStatusWidget()
+        FahrtShortcutWidget()
+        KontakteShortcutWidget()
+        ObjekteShortcutWidget()
     }
 }
