@@ -1,0 +1,20 @@
+{
+  "server_time": "2026-11-01T12:10:00Z",
+  "incident_count": 0,
+  "duty_active": false,
+  "incident": null,
+  "my_lage_queue": null,
+  "lage": {
+    "id": 2,
+    "url": "/lage/2",
+    "name": "Hochwasser",
+    "is_exercise": false,
+    "started_at": "2026-11-01T10:00:00Z",
+    "counts": {
+      "neu": 2,
+      "in_arbeit": 3,
+      "erledigt": 1,
+      "gesamt": 6
+    }
+  }
+}

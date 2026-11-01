@@ -2,11 +2,21 @@
 
 ## Widget-Extension
 
-Das Target `EinsatzWidget` enthält unter `ios/EinsatzWidget/` ein WidgetBundle und das Platzhalter-Widget `EinsatzStatusWidget` für kleine und mittlere Widgets. Die App baut die Extension über eine Target-Abhängigkeit mit und bettet `EinsatzWidget.appex` in `App.app/PlugIns` ein. Die Embed-Phase steht vor `[CP] Embed Pods Frameworks`, um einen Build-Zyklus zu vermeiden.
+Das Target `EinsatzWidget` enthält unter `ios/EinsatzWidget/` ein WidgetBundle und das Widget `EinsatzStatusWidget` für kleine und mittlere Widgets sowie rechteckige und einzeilige Sperrbildschirm-Widgets. Die App baut die Extension über eine Target-Abhängigkeit mit und bettet `EinsatzWidget.appex` in `App.app/PlugIns` ein. Die Embed-Phase steht vor `[CP] Embed Pods Frameworks`, um einen Build-Zyklus zu vermeiden.
 
 Die Bundle-ID lautet `cloud.einsatzleiter.app.widget`. Die Extension setzt iOS 16.2+ voraus; die App selbst läuft weiterhin ab iOS 15.5. Beide Targets verwenden dieselben Versionswerte, die CI beim Build überschreibt. Für signierte Builds müssen die App-ID `cloud.einsatzleiter.app.widget` und die App Group `group.cloud.einsatzleiter.app` später im Apple-Developer-Portal angelegt und entsprechend provisioniert werden.
 
-Die Extension kompiliert dieselbe Datei `ios/Shared/SharedKeys.swift` wie die App. Als Verbindungstest liest der Platzhalter `baseUrl` aus dem gemeinsamen UserDefaults-Container und zeigt bei einem nicht leeren Wert „Angemeldet“, sonst „Anmeldung nötig“. Das ist vorerst nur ein Speichertest, keine Prüfung der Geräte-Token-Anmeldung. Die Timeline enthält einen Eintrag und bittet nach 15 Minuten um Aktualisierung; echte Einsatzdaten folgen später.
+## Einsatzstatus-Widget
+
+Die Extension kompiliert dieselbe Datei `ios/Shared/SharedKeys.swift` wie die App. Sie ruft `GET {baseUrl}/api/v1/device/duty-state` mit dem Geräte-Token als Bearer und den Headern `X-Requested-With: XMLHttpRequest`, `X-ECP-Platform: ios` und `Accept: application/json` ab. Die Basis-URL muss HTTPS und den Host `einsatzcockpit.com` oder eine Subdomain verwenden. Der Abruf nutzt eine ephemere URLSession mit 15 Sekunden Timeout, ohne Versionsparameter und ohne Weiterleitungen.
+
+Vorrang hat ein aktiver Einsatz mit Alarmcode, Adresse, Übungskennzeichnung, Phase und lokal laufendem Zeitzähler. Das mittlere Widget zeigt zusätzlich Meldung und Objektname. Danach folgt die persönliche Lagewarteschlange mit aktuellem Auftrag und Anzahl weiterer Aufträge. Ohne beides wird eine aktive Großschadenslage mit ihrem Namen angezeigt, sonst „Kein Einsatz“ und gegebenenfalls „Dienst aktiv“. Antippen öffnet die zugehörige App-Seite über einen geprüften, prozentkodierten internen Pfad.
+
+Fehlende Geräte-Anmeldung, ungültiger Zugang und HTTP 401/403 zeigen „Anmeldung nötig – App öffnen“ und löschen den Cache. Bei einem zusätzlichen `X-ECP-Auth-Error` speichert die Extension dessen Wert unter `widget.authFailed`. Erfolgreiche Antworten werden als Codable-Wrapper mit Abrufzeitpunkt und JSON-Daten in `widget.dutyState` gespeichert. Bei Verbindungsfehlern bleibt dieser Stand sichtbar; nach 15 Minuten erscheint „Stand HH:mm – keine Verbindung“. Ohne Cache erscheint der Hinweis sofort. Teilweise fehlerhafte Antworten werden feldweise dekodiert; ein defekter Teilbaum verwirft keine gültigen Geschwister.
+
+Die Timeline enthält einen Eintrag und bittet bei aktivem Einsatz nach fünf Minuten, sonst nach 15 Minuten um Aktualisierung. Das WidgetKit-Budget bestimmt den tatsächlichen Abrufzeitpunkt: Aktualisierungen sind nicht sekundengenau. Der Zeitzähler läuft lokal; seine Startzeit wird beim Abruf aus der Differenz von `server_time` und `started_at` relativ zur Geräteuhr berechnet und beim Lesen des Caches am gespeicherten Abrufzeitpunkt verankert.
+
+Unterstützt werden nur Geräte-Token-Anmeldungen; ein reines Session-Cookie genügt nicht. Push-Aktualisierung und Live Activity sind spätere Erweiterungen.
 
 ## Gemeinsamer Speicher
 

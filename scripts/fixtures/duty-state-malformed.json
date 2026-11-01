@@ -1,0 +1,39 @@
+{
+  "server_time": "invalid date",
+  "incident_count": "invalid integer",
+  "duty_active": false,
+  "incident": "invalid subtree",
+  "my_lage_queue": {
+    "lage_id": 2,
+    "lage_name": "Hochwasser",
+    "lage_url": "/einheit",
+    "einheit_url": "/einheit",
+    "is_exercise": true,
+    "current": {
+      "id": 23,
+      "bezeichnung": "Keller auspumpen",
+      "meldung": "Wassereintritt",
+      "address": "Dorfstraße 4",
+      "priority": "hoch",
+      "phase": "neu",
+      "auftrag": "Pumpe aufbauen",
+      "einheit_status": "alarmiert",
+      "einheit_url": "/einheit/auftrag/7"
+    },
+    "upcoming": [
+      {
+        "id": 24,
+        "bezeichnung": "Straße sperren",
+        "meldung": "Wassereintritt",
+        "address": "Dorfstraße 4",
+        "priority": "hoch",
+        "phase": "neu",
+        "auftrag": "Pumpe aufbauen",
+        "einheit_status": "alarmiert",
+        "einheit_url": "/einheit/auftrag/8"
+      }
+    ],
+    "remaining_count": 2
+  },
+  "lage": null
+}
