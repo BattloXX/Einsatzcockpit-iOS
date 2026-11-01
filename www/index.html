@@ -126,6 +126,21 @@ function waitForCapacitor(cb, timeout = 3000) {
   check();
 }
 
+function resolveLaunchUrl(url) {
+  if (typeof url !== 'string' || /[\u0000-\u001f\u007f]/.test(url)) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.username || parsed.password) return null;
+    if (parsed.origin === 'https://einsatzcockpit.com' || parsed.origin === 'https://www.einsatzcockpit.com') {
+      return parsed.href;
+    }
+    if (parsed.protocol !== 'einsatzcockpit:' || parsed.host !== 'open' || parsed.pathname !== '') return null;
+    const path = parsed.searchParams.get('path');
+    if (!path || !/^\/(?!\/)/.test(path) || /[\\\u0000-\u001f\u007f]/.test(path)) return null;
+    return 'https://einsatzcockpit.com' + path;
+  } catch (_) { return null; }
+}
+
 async function startApp() {
   const { Preferences, App } = window.Capacitor.Plugins;
   await Preferences.set({ key: 'el_live_enabled', value: '0' });
@@ -154,15 +169,13 @@ async function startApp() {
     return;
   }
 
-  // Launch-URL beim Kaltstart erhalten. Universal Links werden später eingerichtet.
+  // Universal Links und Schema-Links beim Kaltstart erhalten.
   try {
     const launch = await App?.getLaunchUrl();
-    if (launch?.url) {
-      const target = new URL(launch.url);
-      if (target.origin === 'https://einsatzcockpit.com' && !target.username && !target.password) {
-        window.location.replace(target.href);
-        return;
-      }
+    const target = resolveLaunchUrl(launch?.url);
+    if (target) {
+      window.location.replace(target);
+      return;
     }
   } catch (_) { /* Ohne gültige Launch-URL normal starten. */ }
 
