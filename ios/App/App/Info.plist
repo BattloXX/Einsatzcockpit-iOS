@@ -3,7 +3,24 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>de</string>
+	<key>CFBundleLocalizations</key>
+	<array><string>de</string></array>
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>einsatzcockpit.com</string>
+		<string>www.einsatzcockpit.com</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Die Kamera wird für die QR-Code-Anmeldung und zum Scannen von Codes verwendet.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Dein Standort wird während eines aktiven Einsatzes an die Einsatzleitung übermittelt.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Dein Standort wird während eines aktiven Einsatzes auch im Hintergrund an die Einsatzleitung übermittelt.</string>
+	<key>UIBackgroundModes</key>
+	<array><string>location</string></array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleDisplayName</key>
         <string>Einsatzcockpit</string>
 	<key>CFBundleExecutable</key>
@@ -47,7 +64,7 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

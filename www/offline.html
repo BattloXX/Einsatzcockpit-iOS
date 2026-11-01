@@ -2,11 +2,11 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Keine Verbindung · Einsatzcockpit</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
       background: #0f172a; color: #f1f5f9; font-family: system-ui, sans-serif; }
     main { width: 100%; max-width: 420px; padding: 28px; background: #1e293b;
       border: 1px solid #334155; border-radius: 14px; }
@@ -22,9 +22,8 @@
 <body>
   <main>
     <h1>Keine Verbindung</h1>
-    <p>Diese Seite ist offline nicht verfügbar. Bereits gespeicherte Objekte und Kontakte können weiterhin geöffnet werden.</p>
-    <a id="objekte" href="https://einsatzcockpit.com/objekte/">Objekte (offline)</a>
-    <a id="kontakte" href="https://einsatzcockpit.com/kontakte">Kontakte (offline)</a>
+    <p>Diese Seite ist offline nicht verfügbar. Auf dem iPhone/iPad können nur bereits vom Web-Cache gespeicherte Seiten verfügbar sein. Bitte stelle eine Internetverbindung her.</p>
+    <a href="https://einsatzcockpit.com/">Zur Startseite</a>
     <button id="retry" type="button">Erneut versuchen</button>
   </main>
 <script>
@@ -33,18 +32,12 @@
       try {
         const url = new URL(value);
         return url.protocol === 'https:' &&
-          (url.hostname === 'einsatzcockpit.com' || url.hostname.endsWith('.einsatzcockpit.com'));
+          ['https://einsatzcockpit.com', 'https://www.einsatzcockpit.com'].includes(url.origin) &&
+          !url.username && !url.password;
       } catch (_) { return false; }
     }
     document.getElementById('retry').addEventListener('click', function () {
       location.replace(erlaubteUrl(retry) ? retry : 'https://einsatzcockpit.com/');
-    });
-    document.getElementById('kontakte').addEventListener('click', async function (event) {
-      const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
-      if (!plugin || typeof plugin.openOfflineKontakte !== 'function') return;
-      event.preventDefault();
-      try { await plugin.openOfflineKontakte(); }
-      catch (_) { location.href = event.currentTarget ? event.currentTarget.href : 'https://einsatzcockpit.com/kontakte'; }
     });
   </script>
 </body>

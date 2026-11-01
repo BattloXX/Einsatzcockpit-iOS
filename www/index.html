@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Einsatzcockpit</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,7 +16,7 @@
       min-height: 100dvh;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      padding: 32px 24px; gap: 24px; text-align: center;
+      padding: calc(32px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left)); gap: 24px; text-align: center;
     }
     .logo { width: 140px; height: 140px; object-fit: contain; }
     .sub { font-size: .9rem; color: var(--muted); }
@@ -37,9 +37,6 @@
     button.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .divider { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; color: var(--muted); font-size: .8rem; }
     .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-    .opt-in { display:flex; gap:10px; text-align:left; margin-top:16px; align-items:flex-start; }
-    .opt-in input { width:18px; height:18px; margin-top:2px; accent-color:var(--blue); }
-    .opt-in label { font-size:.85rem; color:var(--text); line-height:1.4; }
     .spinner {
       width: 36px; height: 36px; border: 3px solid var(--border);
       border-top-color: var(--blue); border-radius: 50%;
@@ -58,10 +55,6 @@
   <div class="card" id="setupCard" style="display:none;">
     <h2>👤 Mit Account anmelden</h2>
     <p>Persönlicher Account (Benutzername/Passwort)</p>
-    <div class="opt-in">
-      <input id="liveOptIn" type="checkbox">
-      <label for="liveOptIn">Live-Einsatzstatus aktivieren. Bei neuen und laufenden Einsätzen zeigt die App eine aktuelle Dauerbenachrichtigung.</label>
-    </div>
     <button onclick="openAccountLogin()">Mit Account anmelden</button>
     <div class="divider"><span>oder Geräte-Login</span></div>
     <p>Scanne den QR-Code aus dem Admin-Bereich<br>(Admin → Geräte-Login → + Gerät registrieren)</p>
@@ -69,50 +62,13 @@
     <button class="btn-secondary" onclick="openPinPairing()">PIN eingeben statt scannen</button>
   </div>
 
-  <div class="card" id="liveOptInCard" style="display:none;">
-    <h2>Live-Einsatzstatus</h2>
-    <p>Die App kann im Hintergrund aktiv bleiben und laufende Einsätze dauerhaft auf Sperrbildschirm und Statusleiste anzeigen. Möchtest du das einschalten?</p>
-    <button onclick="finishAccountLiveChoice(true)">Live-Einsatzstatus aktivieren</button>
-    <button class="btn-secondary" onclick="finishAccountLiveChoice(false)">Ohne Live-Einsatzstatus fortfahren</button>
-  </div>
-
   <div id="error"></div>
 
 <script>
-// ── FCM Push-Registrierung ────────────────────────────────────────────────────
-// Muss HIER (lokale Origin) laufen: Capacitor injiziert seine JS-Bruecke nicht
-// zuverlaessig in extern (server.allowNavigation) nachgeladene Seiten - betraf
-// bereits den "Ueber die App"-Menuepunkt (dauerhaft ausgeblendet, siehe Backend
-// main.py::session_middleware). Blockiert die Anmeldung NIE laenger als
-// PUSH_TIMEOUT_MS - ohne Play Services/Berechtigung bleibt Login moeglich,
-// Push bleibt dann eben aus (naechster Versuch beim naechsten App-Start).
-const PUSH_TIMEOUT_MS = 4000;
-
+// Push folgt mit Firebase Messaging. Das APNs-Token darf nie als FCM-Token
+// ans Backend gehen. Bis zur Integration bleibt die Registrierung deaktiviert.
 async function registerPushToken() {
-  try {
-    const { PushNotifications } = window.Capacitor.Plugins;
-    if (!PushNotifications) return null;
-    const perm = await PushNotifications.requestPermissions();
-    if (perm.receive !== 'granted') return null;
-
-    return await new Promise((resolve) => {
-      let done = false;
-      const finish = (value) => { if (!done) { done = true; resolve(value); } };
-      PushNotifications.addListener('registration', (reg) => finish(reg.value));
-      PushNotifications.addListener('registrationError', (err) => {
-        console.warn('[Push] Registrierung fehlgeschlagen:', err);
-        finish(null);
-      });
-      PushNotifications.register().catch((e) => {
-        console.warn('[Push] register() Fehler:', e);
-        finish(null);
-      });
-      setTimeout(() => finish(null), PUSH_TIMEOUT_MS);
-    });
-  } catch (e) {
-    console.warn('[Push] Registrierung uebersprungen:', e);
-    return null;
-  }
+  return null;
 }
 
 function withFcmParam(url, fcmToken) {
@@ -120,436 +76,181 @@ function withFcmParam(url, fcmToken) {
   return url + (url.includes('?') ? '&' : '?') + 'fcm_token=' + encodeURIComponent(fcmToken);
 }
 
-// navigator.onLine bleibt in Android-WebViews nach Flugmodus oder Netzverlust
-// gelegentlich auf true. Vor der Anmeldung fragen wir daher bevorzugt Androids
-// ConnectivityManager nach einem tatsächlich validierten Internetzugang. Falls
-// die native Brücke ausnahmsweise noch nicht bereitsteht, bleibt navigator.onLine
-// als Browser-Fallback erhalten.
 async function isOffline() {
-  try {
-    const nativeNetwork = window.Capacitor?.Plugins?.DeviceKeepalive;
-    if (nativeNetwork && typeof nativeNetwork.getNetworkStatus === 'function') {
-      const { connected } = await nativeNetwork.getNetworkStatus();
-      return connected !== true;
-    }
-  } catch (_) {
-    // Fallback für eine unvollständig injizierte Capacitor-Brücke.
-  }
-  return typeof navigator !== 'undefined' && navigator.onLine === false;
+  return navigator.onLine === false;
 }
 
-// ── Start-Logik ────────────────────────────────────────────────────────────────
-// Wartet auf Capacitor-Bridge (asynchron injiziert)
+// Capacitor injiziert die Bridge asynchron in die lokale Launcher-Seite.
 function waitForCapacitor(cb, timeout = 3000) {
   const start = Date.now();
   function check() {
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) {
+    if (window.Capacitor?.Plugins?.Preferences) {
       cb();
     } else if (Date.now() - start < timeout) {
       setTimeout(check, 100);
     } else {
-      // Kein Capacitor – direkt zur PWA (Browser-Fallback)
-      window.location.href = 'https://einsatzcockpit.com';
+      window.location.replace('https://einsatzcockpit.com/');
     }
   }
   check();
 }
 
-waitForCapacitor(async () => {
-  const { Preferences, SmsGateway } = window.Capacitor.Plugins;
-  // Android App Link beim Kaltstart: Ziel inklusive Pfad, Query und Fragment
-  // in derselben WebView öffnen, bevor die normale Startlogik weiterleitet.
-  try {
-    const launch = await window.Capacitor.Plugins.App?.getLaunchUrl();
-    if (launch?.url) {
-      const target = new URL(launch.url);
-      if (target.origin === 'https://einsatzcockpit.com' && !target.username && !target.password) {
-        await Preferences.set({ key: 'el_base_url', value: target.origin });
-        window.location.replace(target.href);
-        return;
-      }
-    }
-  } catch (_) { /* Ohne gültigen App Link normal starten. */ }
-  // Standort ist eine Laufzeitberechtigung. Die Auto-Update-Variante öffnet
-  // zusätzlich einmal die Android-Systemseite für "Unbekannte Apps installieren".
-  // Beide Entscheidungen liegen beim Geräteinhaber und können nicht still gesetzt werden.
-  try {
-    await window.Capacitor.Plugins.DeviceKeepalive?.requestStartupPermissions?.();
-  } catch (_) {
-    // Berechtigungen blockieren die Anmeldung nicht; Android zeigt sie beim nächsten Start erneut an.
-  }
+async function startApp() {
+  const { Preferences, App } = window.Capacitor.Plugins;
+  await Preferences.set({ key: 'el_live_enabled', value: '0' });
   await Preferences.set({ key: 'el_base_url', value: 'https://einsatzcockpit.com' });
 
-  try {
-    const { value } = await Preferences.get({ key: 'el_alarm_override_silent' });
-    const AlarmChannel = window.Capacitor.Plugins.AlarmChannel;
-    if (value === '1' && AlarmChannel && !(await AlarmChannel.getStatus()).enabled) await AlarmChannel.setEnabled({ enabled: true });
-  } catch (_) { /* Alarmkanal-Reconcile ist best-effort */ }
-
-  // Rückkehr von der PIN-Pairing-Bestätigungsseite (geraet-login-pin): Capacitor
-  // injiziert seine JS-Bruecke nicht zuverlässig in extern nachgeladene Seiten
-  // (server.allowNavigation, bekannte Capacitor-Einschränkung) — die
-  // Bestätigungsseite kann den Token deshalb nicht selbst per Preferences
-  // speichern. Stattdessen leitet sie mit dem frischen Token als Query-Param
-  // hierher zurück (lokale Seite, garantierter Bridge-Zugriff), wo er jetzt
-  // zuverlässig abgelegt wird.
+  // Logout und PIN-Rückkehr müssen vor einer möglichen Launch-URL wirken.
   const pinParams = new URLSearchParams(window.location.search);
   if (pinParams.get('native_logout') === '1') {
-    const DevKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    if (DevKA) { try { await DevKA.stopKeepalive(); } catch (_) {} }
-    if (DevKA) { try { await DevKA.wipeKontakte(); } catch (_) {} }
     await Promise.all([
       Preferences.remove({ key: 'el_device_token' }),
-      Preferences.set({ key: 'el_live_enabled', value: '0' }),
+      Preferences.remove({ key: 'ec_device_access_invalid' }),
       Preferences.remove({ key: 'el_used_account_login' }),
     ]);
     window.location.replace('https://einsatzcockpit.com/logout');
     return;
   }
+  // Die lokale Origin speichert den von der PIN-Bestätigung gelieferten Token.
   const pinToken = pinParams.get('pin_device_token');
   if (pinToken) {
-    setStatus('Anmelden…');
     await Preferences.set({ key: 'el_device_token', value: pinToken });
     await Preferences.remove({ key: 'ec_device_access_invalid' });
-
-    const DevKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    // Geräte sind für die Offline-Einsatzvorbereitung vorgesehen. Eine frühere,
-    // persönliche Einstellung darf eine neue Gerätekopplung nicht übernehmen.
-    if (DevKA) { try { await DevKA.setObjectSyncEnabled({ enabled: true }); } catch (_) {} }
-
-    // Kombiniertes Geraet (Board + SMS-Gateway) per PIN gekoppelt: nur vorhanden,
-    // wenn das Geraet auch als SMS-Gateway angelegt wurde (siehe geraet_login_pin_done.html).
-    const pinGatewayToken = pinParams.get('pin_gateway_token');
-    if (pinGatewayToken) {
-      const gwBaseUrl = 'https://einsatzcockpit.com';
-      await Preferences.set({ key: 'el_gateway_url',   value: gwBaseUrl });
-      await Preferences.set({ key: 'el_gateway_token', value: pinGatewayToken });
-      if (SmsGateway) {
-        const { granted } = await SmsGateway.requestPermission();
-        if (!granted) {
-          showError('SMS-Berechtigung verweigert – bitte manuell in den App-Einstellungen aktivieren.');
-        }
-        await SmsGateway.startGateway({ url: gwBaseUrl, token: pinGatewayToken });
-        await ensureBatteryOptimizationOff(SmsGateway);
-      }
-    }
-
-    if (DevKA) { try { await DevKA.startKeepalive(); } catch (_) {} }
-    const pinFcmToken = await registerPushToken();
+    setStatus('Anmelden…');
     window.location.replace(withFcmParam(
       'https://einsatzcockpit.com/geraet-login?token=' + encodeURIComponent(pinToken) + '&native=1',
-      pinFcmToken));
+      await registerPushToken()));
     return;
   }
 
-  // Beide Rollen sind unabhängig voneinander möglich (kombiniertes Gerät):
-  // Gateway läuft immer headless im Hintergrund, das Board ist – falls vorhanden –
-  // die Hauptansicht. Nur ohne Geräte-Token bleibt gateway.html die Ansicht.
-  const { value: gwUrl }       = await Preferences.get({ key: 'el_gateway_url' });
-  const { value: gwToken }     = await Preferences.get({ key: 'el_gateway_token' });
+  // Launch-URL beim Kaltstart erhalten. Universal Links werden später eingerichtet.
+  try {
+    const launch = await App?.getLaunchUrl();
+    if (launch?.url) {
+      const target = new URL(launch.url);
+      if (target.origin === 'https://einsatzcockpit.com' && !target.username && !target.password) {
+        window.location.replace(target.href);
+        return;
+      }
+    }
+  } catch (_) { /* Ohne gültige Launch-URL normal starten. */ }
+
   const { value: deviceToken } = await Preferences.get({ key: 'el_device_token' });
-  const hasGateway = !!(gwUrl && gwToken);
-  const hasDevice  = !!deviceToken;
-
-  if (hasGateway) {
-    setStatus('SMS-Gateway startet…');
-    if (SmsGateway) {
-      await SmsGateway.startGateway({ url: gwUrl, token: gwToken });
-      await ensureBatteryOptimizationOff(SmsGateway);
-    }
-  }
-
-  // Gerätezugang abgelaufen/widerrufen (vom Server gemeldet, siehe DeviceAccessState.kt):
-  // keine automatische Anmeldung, stattdessen Hinweis und erneutes Verbinden.
   const { value: accessInvalid } = await Preferences.get({ key: 'ec_device_access_invalid' });
-  if (accessInvalid && !hasDevice) {
-    const DevKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    if (DevKA) { try { await DevKA.stopKeepalive(); } catch (_) {} }
-    setStatus('Gerätezugang ungültig');
-    document.getElementById('spinner').style.display = 'none';
-    document.getElementById('setupCard').style.display = '';
-    const err = document.getElementById('error');
-    err.textContent = 'Der Gerätezugang ist abgelaufen oder wurde deaktiviert. Bitte das Gerät erneut verbinden.';
-    err.style.display = '';
-    const scan = document.getElementById('scanBtn');
-    scan.textContent = 'Erneut verbinden (QR-Code scannen)';
+  if (accessInvalid) {
+    showSetup();
+    showError('Der Gerätezugang ist abgelaufen oder wurde deaktiviert. Bitte das Gerät erneut verbinden.');
+    document.getElementById('scanBtn').textContent = 'Erneut verbinden (QR-Code scannen)';
     return;
   }
-
-  if (hasDevice) {
-    // ForegroundService starten – App-Prozess bleibt im Hintergrund am Leben,
-    // auch wenn der Bildschirm ausgeht (Bildschirm darf ausgehen, App nicht)
-    const DevKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    if (DevKA) { try { await DevKA.startKeepalive(); } catch (_) {} }
-    if (await isOffline()) {
-      // Offline: /geraet-login braucht zwingend einen DB-Roundtrip (Session-Cookie
-      // ausstellen) und wird vom Service Worker nie gecacht – wäre hier ein
-      // Sackgassen-Navigationsfehler. Das Session-Cookie aus dem letzten Online-Login
-      // ist ~10 Jahre gültig und liegt schon im WebView-Cookiespeicher; ein Sprung
-      // zur precachten Startseite (ohne Query-String, exakter Cache-Treffer in sw.js
-      // CORE_PRECACHE) reicht, um die bereits offline verfügbaren Inhalte zu zeigen.
-      setStatus('Offline – zeige zuletzt geladene Ansicht…');
-      window.location.replace('https://einsatzcockpit.com/');
-      return;
-    }
-    setStatus('Anmelden…');
-    const deviceFcmToken = await registerPushToken();
-    window.location.replace(withFcmParam(
-      'https://einsatzcockpit.com/geraet-login?token=' + encodeURIComponent(deviceToken) + '&native=1',
-      deviceFcmToken));
-    return;
-  }
-
-  if (hasGateway) {
-    // Reiner Gateway-Modus (kein Board-Login vorhanden) – lokale Statusseite zeigen.
-    window.location.replace('gateway.html');
-    return;
-  }
-
-  // Kein Geraete-/Gateway-Token gespeichert. Falls der Nutzer aber frueher schon
-  // einmal "Mit Account anmelden" genutzt hat, liegt evtl. noch eine gueltige
-  // Web-Session (Cookie) im WebView-Cookiespeicher. Statt jedes Mal erneut den
-  // Setup-Screen zu zeigen, still zur Startseite navigieren – SameSite=Lax-Cookies
-  // werden bei einer echten Top-Level-Navigation immer mitgeschickt; der Server
-  // zeigt bei ungueltiger/abgelaufener Session ohnehin korrekt /login an
-  // (Nutzer-Feedback 2026-07-11: Login-Screen soll nicht erneut erscheinen).
   const { value: usedAccountLogin } = await Preferences.get({ key: 'el_used_account_login' });
-  if (usedAccountLogin) {
-    const { value: liveEnabled } = await Preferences.get({ key: 'el_live_enabled' });
-    if (liveEnabled === null) {
-      setStatus('Live-Einsatzstatus einrichten');
-      document.getElementById('spinner').style.display = 'none';
-      document.getElementById('liveOptInCard').style.display = '';
-      return;
-    }
-    if (liveEnabled === '1') {
-      const DevKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-      if (DevKA) { try { await DevKA.startKeepalive(); } catch (_) {} }
-    }
+  if (deviceToken || usedAccountLogin) {
     if (await isOffline()) {
+      // Login benötigt den Server. Die gecachte Startseite braucht keine Query;
+      // vorhandene Cookies und der PWA-Service-Worker übernehmen die Sitzung.
       setStatus('Offline – zeige zuletzt geladene Ansicht…');
       window.location.replace('https://einsatzcockpit.com/');
       return;
     }
     setStatus('Anmelden…');
-    // Push-Registrierung faengt HIER (still, ohne Setup-Screen) jeden weiteren
-    // App-Start ab - beim allerersten Login (openAccountLogin()) lief sie schon
-    // einmal, aber ein FCM-Token kann sich aendern (Neuinstallation, Datenlöschung).
-    // Backend liest fcm_token zentral in main.py::session_middleware fuer JEDEN
-    // authentifizierten Request, nicht nur beim Login-Formular.
-    const quietFcmToken = await registerPushToken();
-    window.location.replace(withFcmParam('https://einsatzcockpit.com/?native=1', quietFcmToken));
+    const target = deviceToken
+      ? 'https://einsatzcockpit.com/geraet-login?token=' + encodeURIComponent(deviceToken) + '&native=1'
+      : 'https://einsatzcockpit.com/?native=1';
+    window.location.replace(withFcmParam(target, await registerPushToken()));
     return;
   }
+  showSetup();
+}
 
-  // Kein Token, keine bekannte Account-Session → QR-Scanner anzeigen
-  // (+ Alternativen: PIN, Account-Login)
+waitForCapacitor(() => startApp().catch(() => {
+  showSetup();
+  showError('App konnte nicht gestartet werden. Bitte erneut anmelden.');
+}));
+
+function showSetup() {
   setStatus('Anmeldung erforderlich');
   document.getElementById('spinner').style.display = 'none';
   document.getElementById('setupCard').style.display = '';
-});
-
-// Akku-Optimierung nur einmalig anfragen (nicht bei jedem Start prompten), damit der
-// Gateway-Dienst zuverlässig im Hintergrund weiterläuft.
-async function ensureBatteryOptimizationOff(SmsGateway) {
-  try {
-    if (!SmsGateway.getBatteryOptimizationStatus) return;
-    const { ignored } = await SmsGateway.getBatteryOptimizationStatus();
-    if (!ignored) {
-      await SmsGateway.requestBatteryOptimization();
-    }
-  } catch (_) { /* Methode optional / Fehler ignorieren, Gateway läuft trotzdem */ }
 }
 
-// ── Alternativen zum QR-Scan ─────────────────────────────────────────────────
-// Geräte-Pairing per PIN (kein Kamerazugriff nötig) – die Bestätigungsseite
-// leitet bei Erfolg mit dem frischen Token (+ optional Gateway-Token bei
-// kombiniertem Geraet) hierher zurück, siehe pin_device_token-Handling oben.
 function openPinPairing() {
   window.location.replace('https://einsatzcockpit.com/geraet-login-pin?native=1');
 }
 
-// Persönlicher Account (Benutzername/Passwort) – normale Web-Session statt
-// Geräte-Token, hält bis zu 30 Tage bei aktivem "Angemeldet bleiben". Merkt sich,
-// dass dieser Weg schon einmal genutzt wurde, damit der Setup-Screen bei einer
-// noch gültigen Session beim nächsten App-Start übersprungen werden kann.
 async function openAccountLogin() {
   try {
     const { Preferences } = window.Capacitor.Plugins;
-    const DevKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    // Persönliche Konten cachen Objekte nur nach expliziter Aktivierung in
-    // „Über die App“; Fahrzeug-/Geräte-Logins setzen diese Option dagegen ein.
-    if (DevKA) await DevKA.setObjectSyncEnabled({ enabled: false });
+    await Preferences.set({ key: 'el_live_enabled', value: '0' });
     await Preferences.set({ key: 'el_used_account_login', value: '1' });
-    const enabled = document.getElementById('liveOptIn').checked;
-    await Preferences.set({ key: 'el_live_enabled', value: enabled ? '1' : '0' });
-    if (enabled) {
-      if (DevKA) await DevKA.startKeepalive();
-    } else {
-      if (DevKA) await DevKA.stopKeepalive();
-    }
-    if (DevKA) await DevKA.scheduleKontaktSync();
-  } catch (_) { /* Merken ist best-effort, Login funktioniert trotzdem */ }
-  const fcmToken = await registerPushToken();
-  window.location.replace(withFcmParam('https://einsatzcockpit.com/login?native=1', fcmToken));
-}
-
-async function finishAccountLiveChoice(enabled) {
-  try {
-    const { Preferences } = window.Capacitor.Plugins;
-    const DevKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    if (DevKA) await DevKA.setObjectSyncEnabled({ enabled: false });
-    await Preferences.set({ key: 'el_live_enabled', value: enabled ? '1' : '0' });
-    if (enabled) {
-      if (DevKA) await DevKA.startKeepalive();
-    } else {
-      if (DevKA) await DevKA.stopKeepalive();
-    }
-    if (DevKA) await DevKA.scheduleKontaktSync();
-  } catch (_) { /* Navigation bleibt auch ohne native Brücke möglich */ }
-  setStatus('Anmelden…');
-  document.getElementById('liveOptInCard').style.display = 'none';
-  document.getElementById('spinner').style.display = '';
-  const fcmToken = await registerPushToken();
-  window.location.replace(withFcmParam('https://einsatzcockpit.com/?native=1', fcmToken));
+  } catch (_) { /* Login funktioniert auch ohne gespeicherte Auswahl. */ }
+  window.location.replace(withFcmParam('https://einsatzcockpit.com/login?native=1', await registerPushToken()));
 }
 
 function setStatus(msg) {
   document.getElementById('statusLine').textContent = msg;
 }
 
-// ── QR-Scan ────────────────────────────────────────────────────────────────────
 async function startScan() {
-  const { Preferences, SmsGateway } = window.Capacitor.Plugins;
-  const BarcodeScanner = window.Capacitor.Plugins.BarcodeScanner;
-
+  const { Preferences, BarcodeScanner } = window.Capacitor.Plugins;
   if (!BarcodeScanner) {
     showError('QR-Scanner-Plugin nicht verfügbar.');
     return;
   }
-
-  setStatus('QR-Scanner öffnet…');
   document.getElementById('scanBtn').disabled = true;
-
   try {
-    // Google Barcode Scanner Module prüfen/installieren
-    const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
-    if (!available) {
-      setStatus('Google-Scanner-Modul wird installiert…');
-      await new Promise((resolve, reject) => {
-        BarcodeScanner.addListener('googleBarcodeScannerModuleInstallProgress', (e) => {
-          if (e.state === 4) resolve();
-          else if (e.state === 5) reject(new Error('Modul-Installation fehlgeschlagen'));
-        });
-        BarcodeScanner.installGoogleBarcodeScannerModule();
-      });
+    const { camera } = await BarcodeScanner.requestPermissions();
+    if (camera !== 'granted' && camera !== 'limited') {
+      showError('Kamerazugriff verweigert. Bitte in den Einstellungen des iPhone/iPad erlauben oder PIN eingeben.');
+      return;
     }
-
     setStatus('QR-Code scannen…');
     const { barcodes } = await BarcodeScanner.scan();
-    if (!barcodes || barcodes.length === 0) {
+    if (!barcodes?.length) {
       showError('Kein QR-Code gescannt.');
       return;
     }
-    await handleQrResult(barcodes[0].rawValue, Preferences, SmsGateway);
+    await handleQrResult(barcodes[0].rawValue, Preferences);
   } catch (e) {
     showError('Scan-Fehler: ' + (e.message || e));
+  } finally {
     document.getElementById('scanBtn').disabled = false;
   }
 }
 
-const ALLOWED_HOSTS = ['einsatzcockpit.com'];
-
-async function handleQrResult(raw, Preferences, SmsGateway) {
+async function handleQrResult(raw, Preferences) {
   let parsed;
   try { parsed = new URL(raw); }
   catch (_) { showError('Ungültiger QR-Code.'); return; }
-
   if (parsed.protocol !== 'https:') {
     showError('QR-Code muss eine https-Adresse enthalten.');
     return;
   }
-
-  if (!ALLOWED_HOSTS.includes(parsed.hostname)) {
+  if (parsed.origin !== 'https://einsatzcockpit.com' || parsed.username || parsed.password) {
     showError('QR-Code von unbekanntem Server – abgelehnt.');
     return;
   }
-
-  const token       = parsed.searchParams.get('token');
-  const mode        = parsed.searchParams.get('mode');
-  const gatewayTok  = parsed.searchParams.get('gateway_token');
-
-  if (!token) { showError('QR-Code enthält kein Token.'); return; }
-
-  if (mode === 'unit+sms-gateway') {
-    // ── Kombiniertes Gerät: Board-Login UND SMS-Gateway in einem Scan ───────
-    if (!gatewayTok) { showError('QR-Code enthält kein Gateway-Token.'); return; }
-    const baseUrl = parsed.origin;
-    setStatus('Gerät + SMS-Gateway koppeln…');
-
-    await Preferences.set({ key: 'el_gateway_url',   value: baseUrl });
-    await Preferences.set({ key: 'el_gateway_token', value: gatewayTok });
-    await Preferences.set({ key: 'el_device_token',  value: token });
-    await Preferences.remove({ key: 'ec_device_access_invalid' });
-    await Preferences.set({ key: 'el_base_url',      value: baseUrl });
-
-    if (SmsGateway) {
-      const { granted } = await SmsGateway.requestPermission();
-      if (!granted) {
-        showError('SMS-Berechtigung verweigert – bitte manuell in den App-Einstellungen aktivieren.');
-        // Trotzdem fortfahren; Gateway startet headless, SMS schlägt fehl bis berechtigt
-      }
-      await SmsGateway.startGateway({ url: baseUrl, token: gatewayTok });
-      await ensureBatteryOptimizationOff(SmsGateway);
-    }
-    // Board ist die Hauptansicht; Gateway läuft ab jetzt im Hintergrund weiter.
-    setStatus('Anmelden…');
-    const CombinedKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    if (CombinedKA) { try { await CombinedKA.setObjectSyncEnabled({ enabled: true }); } catch (_) {} }
-    if (CombinedKA) { try { await CombinedKA.startKeepalive(); } catch (_) {} }
-    const combinedFcmToken = await registerPushToken();
-    window.location.replace(withFcmParam(
-      `${baseUrl}/geraet-login?token=${encodeURIComponent(token)}&native=1`, combinedFcmToken));
-
-  } else if (mode === 'sms-gateway') {
-    // ── Gateway-Modus ──────────────────────────────────────────────────────
-    const baseUrl = parsed.origin;
-    setStatus('SMS-Gateway konfigurieren…');
-
-    await Preferences.set({ key: 'el_gateway_url',   value: baseUrl });
-    await Preferences.set({ key: 'el_gateway_token', value: token });
-
-    if (SmsGateway) {
-      // Berechtigung anfragen
-      const { granted } = await SmsGateway.requestPermission();
-      if (!granted) {
-        showError('SMS-Berechtigung verweigert – bitte manuell in den App-Einstellungen aktivieren.');
-        // Trotzdem fortfahren; Service startet, aber SMS schlägt fehl bis berechtigt
-      }
-      await SmsGateway.startGateway({ url: baseUrl, token });
-    }
-    window.location.replace('gateway.html');
-
-  } else {
-    // ── Einheit-Gerät-Modus ────────────────────────────────────────────────
-    setStatus('Anmelden…');
-    await Preferences.set({ key: 'el_device_token', value: token });
-    await Preferences.remove({ key: 'ec_device_access_invalid' });
-    await Preferences.set({ key: 'el_base_url', value: parsed.origin });
-    const UnitKA = window.Capacitor?.Plugins?.DeviceKeepalive;
-    if (UnitKA) { try { await UnitKA.setObjectSyncEnabled({ enabled: true }); } catch (_) {} }
-    if (UnitKA) { try { await UnitKA.startKeepalive(); } catch (_) {} }
-    const unitFcmToken = await registerPushToken();
-    window.location.replace(withFcmParam(
-      `${parsed.origin}/geraet-login?token=${encodeURIComponent(token)}&native=1`, unitFcmToken));
+  const mode = parsed.searchParams.get('mode');
+  if (mode === 'sms-gateway') {
+    showError('SMS-Gateway wird in der iOS-App nicht unterstützt.');
+    return;
   }
+  // Auch unit+sms-gateway wird ausschließlich als Gerät angemeldet.
+  const token = parsed.searchParams.get('token');
+  if (!token) { showError('QR-Code enthält kein Token.'); return; }
+  setStatus('Anmelden…');
+  await Preferences.set({ key: 'el_device_token', value: token });
+  await Preferences.remove({ key: 'ec_device_access_invalid' });
+  await Preferences.set({ key: 'el_base_url', value: parsed.origin });
+  window.location.replace(withFcmParam(
+    parsed.origin + '/geraet-login?token=' + encodeURIComponent(token) + '&native=1',
+    await registerPushToken()));
 }
 
 function showError(msg) {
   setStatus('Fehler');
   const el = document.getElementById('error');
   el.textContent = msg;
-  el.style.display = '';
+  el.style.display = 'block';
   document.getElementById('scanBtn').disabled = false;
 }
 </script>
