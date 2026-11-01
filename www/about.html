@@ -39,10 +39,12 @@
       <dt>App-Version</dt><dd id="appVersion">Nicht verfügbar</dd>
       <dt>Server-URL</dt><dd>https://einsatzcockpit.com</dd>
       <dt>Geräte-Token gesetzt</dt><dd id="deviceTokenStatus">Nicht verfügbar</dd>
+      <dt>Push-Plugin</dt><dd id="pushPluginStatus">Nicht verfügbar</dd>
+      <dt>Push-Berechtigung</dt><dd id="pushPermissionStatus">Nicht verfügbar</dd>
       <dt>Plattform</dt><dd id="platform">Nicht verfügbar</dd>
     </dl>
   </section>
-  <p>Push-Benachrichtigungen folgen in einer späteren Version.</p>
+  <p id="pushHint" role="status"></p>
   <a class="btn" href="https://einsatzcockpit.com/">Zurück zur App</a>
   <button id="resetButton" type="button" onclick="resetDevice()" disabled>Geräteanmeldung zurücksetzen</button>
   <p id="status" role="status"></p>
@@ -52,6 +54,7 @@ async function loadInfo() {
   document.getElementById('platform').textContent = window.Capacitor.getPlatform();
   document.getElementById('resetButton').disabled = false;
   await Promise.all([
+    loadPushStatus(),
     App.getInfo().then(info => {
       document.getElementById('appVersion').textContent = info.version + ' (' + info.build + ')';
     }),
@@ -59,6 +62,21 @@ async function loadInfo() {
       document.getElementById('deviceTokenStatus').textContent = value ? 'Ja' : 'Nein';
     }),
   ]);
+}
+
+async function loadPushStatus() {
+  const push = window.Capacitor.Plugins.PushNotifications;
+  document.getElementById('pushPluginStatus').textContent = push ? 'Vorhanden' : 'Nicht vorhanden';
+  if (!push) return;
+  try {
+    const { receive } = await push.checkPermissions();
+    document.getElementById('pushPermissionStatus').textContent =
+      receive === 'granted' ? 'Erteilt' : receive === 'denied' ? 'Verweigert' : 'Offen';
+    document.getElementById('pushHint').textContent = receive === 'denied'
+      ? 'In iOS-Einstellungen → Mitteilungen → Einsatzcockpit aktivieren.' : '';
+  } catch (_) {
+    document.getElementById('pushPermissionStatus').textContent = 'Nicht verfügbar';
+  }
 }
 
 async function resetDevice() {

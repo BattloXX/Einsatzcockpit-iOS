@@ -65,15 +65,46 @@
   <div id="error"></div>
 
 <script>
-// Push folgt mit Firebase Messaging. Das APNs-Token darf nie als FCM-Token
-// ans Backend gehen. Bis zur Integration bleibt die Registrierung deaktiviert.
+const PUSH_TIMEOUT_MS = 4000;
+
 async function registerPushToken() {
-  return null;
+  const capacitor = window.Capacitor;
+  if (capacitor?.getPlatform?.() !== 'ios' || !capacitor.Plugins?.PushNotifications) return null;
+  const { PushNotifications } = capacitor.Plugins;
+  return new Promise(resolve => {
+    let done = false;
+    const listeners = [];
+    const remove = listener => { try { Promise.resolve(listener.remove()).catch(() => {}); } catch (_) {} };
+    const finish = value => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      listeners.forEach(remove);
+      resolve(value);
+    };
+    // Auch ein offener Berechtigungsdialog darf die Anmeldung nicht blockieren.
+    const timer = setTimeout(() => finish(null), PUSH_TIMEOUT_MS);
+    const listen = async (event, callback) => {
+      const listener = await PushNotifications.addListener(event, callback);
+      if (done) remove(listener);
+      else listeners.push(listener);
+    };
+    (async () => {
+      const perm = await PushNotifications.requestPermissions();
+      if (done) return;
+      if (perm.receive !== 'granted') { finish(null); return; }
+      await listen('registration', reg => finish(reg.value || null));
+      if (done) return;
+      await listen('registrationError', () => finish(null));
+      if (done) return;
+      await PushNotifications.register();
+    })().catch(() => finish(null));
+  });
 }
 
 function withFcmParam(url, fcmToken) {
   if (!fcmToken) return url;
-  return url + (url.includes('?') ? '&' : '?') + 'fcm_token=' + encodeURIComponent(fcmToken);
+  return url + (url.includes('?') ? '&' : '?') + 'fcm_token=' + encodeURIComponent(fcmToken) + '&fcm_platform=ios';
 }
 
 async function isOffline() {

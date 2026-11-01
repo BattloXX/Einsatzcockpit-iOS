@@ -55,6 +55,20 @@ jobs:
       - name: Pods installieren
         working-directory: ios/App
         run: pod install
+      - name: Optionale Firebase-Konfiguration installieren
+        shell: bash
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            python3 - <<'PYTHON'
+          import base64, os
+          from pathlib import Path
+          Path('ios/App/App/GoogleService-Info.plist').write_bytes(
+              base64.b64decode(os.environ['GOOGLE_SERVICE_INFO_PLIST'], validate=True))
+          PYTHON
+            node scripts/install-google-service-info.mjs
+          fi
       - name: Simulator-App bauen
         shell: bash
         run: |

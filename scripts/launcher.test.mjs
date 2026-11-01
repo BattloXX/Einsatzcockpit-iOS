@@ -39,12 +39,12 @@ function launcher({ stored = {}, offline = false, query = '', launchUrl } = {}) 
 
 test('Launcher und Infoseite enthalten keine entfernten nativen Funktionen', () => {
   for (const name of ['SmsGateway', 'gateway.html', 'DeviceKeepalive', 'AlarmChannel',
-    'isGoogleBarcodeScannerModuleAvailable', 'installGoogleBarcodeScannerModule', 'PushNotifications',
+    'isGoogleBarcodeScannerModuleAvailable', 'installGoogleBarcodeScannerModule',
     'el_gateway_url', 'el_gateway_token', 'pin_gateway_token', 'ensureBatteryOptimizationOff',
     'finishAccountLiveChoice', 'liveOptIn']) {
     assert.ok(!pages['index.html'].includes(name), name);
   }
-  assert.doesNotMatch(pages['about.html'], /SmsGateway|AlarmChannel|update-check/);
+  assert.doesNotMatch(pages['about.html'], /SmsGateway|DeviceKeepalive|AlarmChannel|update-check/);
   assert.ok(pages['index.html'].includes('SMS-Gateway wird in der iOS-App nicht unterstützt.'));
 });
 
@@ -83,12 +83,14 @@ test('iOS-Version normalisiert CalVer, Tag und Paketversion', () => {
   assert.equal(versionForBuild({ GITHUB_REF: 'refs/heads/main' }, '2026.11.01'), '2026.11.1');
 });
 
-test('Push bleibt null und URL-Helfer kann später FCM ergänzen', async () => {
+test('Ohne iOS-Push-Plugin bleibt Push null; URL überträgt FCM-Plattform', async () => {
   const { context } = launcher();
   assert.equal(await context.registerPushToken(), null);
+  assert.match(pages['index.html'], /const PUSH_TIMEOUT_MS = 4000;/);
+  assert.ok(pages['index.html'].includes('fcm_platform=ios'));
   assert.equal(context.withFcmParam('https://einsatzcockpit.com/', null), 'https://einsatzcockpit.com/');
   assert.equal(context.withFcmParam('https://einsatzcockpit.com/?native=1', 'a+b'),
-    'https://einsatzcockpit.com/?native=1&fcm_token=a%2Bb');
+    'https://einsatzcockpit.com/?native=1&fcm_token=a%2Bb&fcm_platform=ios');
 });
 
 test('Offline-Start von Gerät und Account nutzt gecachte Root-URL ohne Query', async () => {
@@ -175,4 +177,93 @@ test('Infoseite zeigt nur Tokenstatus und setzt die drei Anmeldeschlüssel zurü
   await p.context.resetDevice();
   assert.equal(p.values.size, 0);
   assert.deepEqual(p.navigations, ['https://einsatzcockpit.com/logout']);
+});
+
+function pushLauncher(plugin, platform = 'ios') {
+  const p = launcher();
+  const timers = new Map();
+  let nextID = 0;
+  p.context.setTimeout = (callback, ms) => { timers.set(++nextID, { callback, ms }); return nextID; };
+  p.context.clearTimeout = id => timers.delete(id);
+  p.context.window.Capacitor.getPlatform = () => platform;
+  p.context.window.Capacitor.Plugins.PushNotifications = plugin;
+  return { ...p, timers };
+}
+const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
+
+function pushPlugin({ permission = 'granted', result = 'registration', failRegister = false } = {}) {
+  const callbacks = new Map();
+  const events = [];
+  const removed = [];
+  return {
+    events, removed,
+    async requestPermissions() { events.push('permission'); return { receive: permission }; },
+    async addListener(event, callback) {
+      events.push(event);
+      callbacks.set(event, callback);
+      return { async remove() { removed.push(event); callbacks.delete(event); } };
+    },
+    async register() {
+      events.push('register');
+      if (failRegister) throw new Error('APNs unavailable');
+      callbacks.get(result)?.({ value: 'FCM-test' });
+    },
+  };
+}
+
+test('Push registriert nur auf iOS, wartet auf Listener und entfernt sie nach Erfolg/Fehler', async () => {
+  for (const result of ['registration', 'registrationError']) {
+    const plugin = pushPlugin({ result });
+    const p = pushLauncher(plugin);
+    assert.equal(await p.context.registerPushToken(), result === 'registration' ? 'FCM-test' : null);
+    assert.deepEqual(plugin.events, ['permission', 'registration', 'registrationError', 'register']);
+    assert.deepEqual(plugin.removed, ['registration', 'registrationError']);
+    assert.equal(p.timers.size, 0);
+  }
+  const plugin = pushPlugin();
+  assert.equal(await pushLauncher(plugin, 'android').context.registerPushToken(), null);
+  assert.equal(plugin.events.length, 0);
+  for (const options of [{ permission: 'denied' }, { failRegister: true }]) {
+    const p = pushLauncher(pushPlugin(options));
+    assert.equal(await p.context.registerPushToken(), null);
+    assert.equal(p.timers.size, 0);
+  }
+});
+
+test('Push-Timeout begrenzt Berechtigungen, Listener und register; Login geht danach weiter', async () => {
+  for (const stage of ['requestPermissions', 'addListener', 'register', 'event']) {
+    const plugin = pushPlugin({ result: 'none' });
+    let release;
+    if (stage !== 'event') plugin[stage] = () => new Promise(resolve => { release = resolve; });
+    const p = pushLauncher(plugin);
+    const login = p.context.openAccountLogin();
+    await flush();
+    const [timer] = p.timers.values();
+    assert.equal(timer.ms, 4000);
+    timer.callback();
+    await login;
+    assert.deepEqual(p.navigations, ['https://einsatzcockpit.com/login?native=1']);
+    let lateRemoved = false;
+    release?.(stage === 'requestPermissions' ? { receive: 'granted' }
+      : { async remove() { lateRemoved = true; } });
+    await flush();
+    if (stage === 'addListener') assert.equal(lateRemoved, true);
+    if (stage === 'requestPermissions') assert.equal(plugin.events.includes('register'), false);
+  }
+});
+
+test('Infoseite zeigt Push-Plugin und Berechtigungen ohne eine Berechtigung anzufordern', async () => {
+  const p = launcher();
+  p.context.window.Capacitor.getPlatform = () => 'ios';
+  p.context.window.Capacitor.Plugins.App.getInfo = async () => ({ version: '1', build: '1' });
+  vm.runInContext(source('about.html'), p.context);
+  await p.context.loadPushStatus();
+  assert.equal(p.elements.get('pushPluginStatus').textContent, 'Nicht vorhanden');
+  for (const [receive, label] of [['granted', 'Erteilt'], ['denied', 'Verweigert'], ['prompt', 'Offen']]) {
+    p.context.window.Capacitor.Plugins.PushNotifications = { async checkPermissions() { return { receive }; } };
+    await p.context.loadPushStatus();
+    assert.equal(p.elements.get('pushPluginStatus').textContent, 'Vorhanden');
+    assert.equal(p.elements.get('pushPermissionStatus').textContent, label);
+    assert.equal(p.elements.get('pushHint').textContent.includes('Mitteilungen → Einsatzcockpit'), receive === 'denied');
+  }
 });

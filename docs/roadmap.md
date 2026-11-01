@@ -6,7 +6,7 @@ Launcher, Account-Login, Geräteanmeldung über QR/PIN, Logout und Zurücksetzen
 
 ## P2 – Push und Alarmierung
 
-Firebase Messaging mit APNs integrieren. Firebase-iOS-App und APNs-Zugang einrichten; nur das FCM-Token an das Backend übertragen. Backend-Nachrichten um passende `APNSConfig`, Header und Payload ergänzen. Berechtigungsdialoge, Tokenwechsel und Zuordnung zu Account/Gerät implementieren und auf echten Geräten testen. Time-Sensitive-Benachrichtigungen mit passender Capability und Unterbrechungsstufe einrichten. Für Critical Alerts einen Antrag bei Apple stellen; erst nach Genehmigung Entitlement und Nutzerzustimmung integrieren. Eine Genehmigung ist nicht garantiert.
+P2 ist vorbereitet und wartet auf den Apple-Account. Firebase Messaging, FCM-Token-Weitergabe, Push-Berechtigungsstatus und optionale Plist-Einbindung sind umgesetzt; ohne Plist bleibt Push deaktiviert. Einrichtung: [Push einrichten](push-einrichtung.md). Firebase-iOS-App und APNs-Zugang müssen noch eingerichtet werden. `App.entitlements` verwendet vorerst `development` für Debug und Release; spätere Release-Signierung muss mit passendem Provisioning auf `production` umgestellt werden. Backend-Nachrichten um passende `APNSConfig`, Header und Payload ergänzen. Berechtigungsdialoge, Tokenwechsel und Zuordnung zu Account/Gerät auf echten Geräten prüfen. Time-Sensitive-Benachrichtigungen mit passender Capability und Unterbrechungsstufe einrichten. Für Critical Alerts den [vorbereiteten Antrag](critical-alerts-antrag.md) bei Apple stellen; erst nach Genehmigung Entitlement und Nutzerzustimmung integrieren. Eine Genehmigung ist nicht garantiert.
 
 ## P3 – Live Activity
 

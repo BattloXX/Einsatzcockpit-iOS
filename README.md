@@ -13,7 +13,7 @@ Native iPhone- und iPad-App für [einsatzcockpit.com](https://einsatzcockpit.com
 | Objekt-Offline-Sync | Bewusst weggelassen | Vorhanden |
 | SMS-Gateway | Bewusst weggelassen; kombinierte QR-Codes melden nur das Gerät an | Vorhanden |
 | APK-Auto-Update | Entfällt auf iOS | Eigene Update-Variante |
-| Push | Später: Firebase Messaging mit FCM und APNs | Vorhanden |
+| Push | P2 vorbereitet, wartet auf Apple-Account: Firebase Messaging mit FCM und APNs | Vorhanden |
 | Alarmierung trotz Stummmodus | Später: Critical Alerts mit Apple-Genehmigung | Alarmkanal/DND-Integration |
 | Live-Einsatzstatus | Später: Live Activity | Nativer Hintergrunddienst |
 | Widgets | Später: WidgetKit | Vorhanden |
@@ -22,13 +22,13 @@ Native iPhone- und iPad-App für [einsatzcockpit.com](https://einsatzcockpit.com
 
 ## Architektur
 
-`www/index.html` ist die lokale Startseite mit Capacitor-Bridge. Sie speichert Geräte-Token über Preferences und leitet zur PWA weiter. PIN-Rückkehr und Logout werden lokal verarbeitet. Persönliche Accounts nutzen Web-Sitzungen. Die lokale Seite `www/about.html` zeigt App-Version und Build aus `App.getInfo()`, Plattform und ausschließlich den Ja/Nein-Status des Geräte-Tokens. Das Zurücksetzen entfernt die Anmeldeschlüssel und öffnet den Server-Logout.
+`www/index.html` ist die lokale Startseite mit Capacitor-Bridge. Sie speichert Geräte-Token über Preferences und leitet zur PWA weiter. PIN-Rückkehr und Logout werden lokal verarbeitet. Persönliche Accounts nutzen Web-Sitzungen. Die lokale Seite `www/about.html` zeigt App-Version und Build aus `App.getInfo()`, Plattform, den Ja/Nein-Status des Geräte-Tokens sowie Push-Plugin und Benachrichtigungsberechtigung. Das Zurücksetzen entfernt die Anmeldeschlüssel und öffnet den Server-Logout.
 
 `capacitor.config.ts` erlaubt die PWA-Navigation und setzt `limitsNavigationsToAppBoundDomains`. `Info.plist` benennt `einsatzcockpit.com` und `www.einsatzcockpit.com` als App-bound Domains. Weitere Subdomains sind dadurch nicht automatisch freigegeben. Safe-Area-Padding liegt in den lokalen Seiten, weil `contentInset: 'never'` gesetzt ist. Die Remote-PWA muss ihre Safe Areas selbst berücksichtigen.
 
 Offline wird bei bekannter Anmeldung direkt `https://einsatzcockpit.com/` ohne Query geladen. Verfügbarkeit hängt von einem vorherigen Online-Aufruf, Cookies und dem tatsächlich vorhandenen PWA-/WebKit-Cache ab. Es gibt keinen nativen Objekt-Sync. Die lokale `offline.html` bietet einen sicheren Wiederholungslink; eine automatische native Fehlernavigation zu dieser Seite ist in diesem Gerüst nicht implementiert. Cache und WebView-Verhalten müssen im Simulator und auf Geräten geprüft werden.
 
-Push-Registrierung liefert derzeit immer `null`. Ein APNs-Gerätetoken darf niemals als FCM-Token ans Backend gehen. Die installierten Plugins sind App, Preferences, Keep Awake, MLKit Barcode Scanning und Background Geolocation; die Installation allein aktiviert keine Hintergrunddienste.
+P2 ist vorbereitet und wartet auf den Apple-Account. Push verwendet Firebase Messaging und überträgt ausschließlich FCM-Token, beim Launcher mit `fcm_platform=ios`. Die Anmeldung wartet höchstens vier Sekunden auf die Push-Vorbereitung. Ohne Firebase-Plist startet die App ohne Firebase; Push bleibt deaktiviert. Installiert sind App, Preferences, Push Notifications, Keep Awake, MLKit Barcode Scanning und Background Geolocation. Einrichtung und spätere Geräte-Abnahme stehen in [docs/push-einrichtung.md](docs/push-einrichtung.md); der [Critical-Alerts-Antrag](docs/critical-alerts-antrag.md) ist als Entwurf vorbereitet.
 
 ## Voraussetzungen und lokale Entwicklung
 
@@ -50,4 +50,4 @@ Das Setup generiert Icons/Splash, synchronisiert Capacitor, installiert Pods und
 
 `scripts/ios-version.mjs` verwendet bei `refs/tags/v*` den Tag, sonst die Version aus `package.json`. Für `MARKETING_VERSION` bleiben die ersten drei numerischen Teile ohne führende Nullen: `2026.11.01.2` wird `2026.11.1`. `CURRENT_PROJECT_VERSION` kommt in CI aus `github.run_number`, lokal aus `BUILD_NUMBER` (Standard: `1`). Das Xcode-Projekt wird dafür nicht umgeschrieben. `Podfile.lock` ist nicht versioniert; Pod-Auflösung benötigt Netzwerkzugriff und kann sich mit kompatiblen Versionen ändern.
 
-Es gibt bewusst keinen Signierungs- oder TestFlight-Job. Dafür sind später Apple-Developer-Mitgliedschaft, App-Store-Connect-App, Zertifikate/Provisioning und getrennt eingerichtete CI-Secrets erforderlich. Weder Zugangsdaten noch Firebase-Konfiguration gehören in dieses Gerüst. Die weiteren Schritte stehen in [docs/roadmap.md](docs/roadmap.md).
+Es gibt bewusst keinen Signierungs- oder TestFlight-Job. Dafür sind später Apple-Developer-Mitgliedschaft, App-Store-Connect-App, Zertifikate/Provisioning und getrennt eingerichtete CI-Secrets erforderlich. Zugangsdaten und Firebase-Konfiguration bleiben außerhalb des Repositorys; das optionale CI-Secret `GOOGLE_SERVICE_INFO_PLIST` bindet die Plist nur bei Bedarf ein. Die weiteren Schritte stehen in [docs/roadmap.md](docs/roadmap.md).
