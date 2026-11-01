@@ -64,8 +64,8 @@ test('Beide Swift-Dateien gehören zur Sources-Phase des App-Targets', () => {
     const references = [...objects].filter(([, body]) => /isa = PBXFileReference;/.test(body) && (body.includes(`/${name};`) || body.includes(`path = ${name};`)));
     assert.equal(references.length, 1, `${name}: genau eine Dateireferenz`);
     const [fileId, reference] = references[0];
-    const builds = [...objects].filter(([, body]) => /isa = PBXBuildFile;/.test(body) && body.includes(`fileRef = ${fileId}`));
-    assert.equal(builds.length, 1, `${name}: genau ein PBXBuildFile`);
+    const builds = [...objects].filter(([id, body]) => /isa = PBXBuildFile;/.test(body) && body.includes(`fileRef = ${fileId}`) && sourceIds.includes(id));
+    assert.equal(builds.length, 1, `${name}: genau ein PBXBuildFile im App-Target`);
     assert.ok(sourceIds.includes(builds[0][0]), `${name}: nicht in App-Sources`);
     if (name === 'SharedKeys.swift') {
       assert.match(reference, /path = \.\.\/Shared\/SharedKeys.swift; sourceTree = SOURCE_ROOT;/);
