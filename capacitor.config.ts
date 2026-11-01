@@ -11,6 +11,11 @@ const config: CapacitorConfig = {
       '*.einsatzcockpit.com',
     ],
   },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+  },
   ios: {
     // Service Worker (Offline-Cache der PWA) laufen in WKWebView nur für
     // App-Bound Domains, siehe WKAppBoundDomains in ios/App/App/Info.plist.

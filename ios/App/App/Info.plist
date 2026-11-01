@@ -18,7 +18,7 @@
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Dein Standort wird während eines aktiven Einsatzes auch im Hintergrund an die Einsatzleitung übermittelt.</string>
 	<key>UIBackgroundModes</key>
-	<array><string>location</string></array>
+	<array><string>location</string><string>remote-notification</string></array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleDisplayName</key>
