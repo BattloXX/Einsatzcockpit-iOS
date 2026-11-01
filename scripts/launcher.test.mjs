@@ -157,6 +157,50 @@ test('PIN und Logout setzen Zugangsdaten zurück, Launch-URL bleibt erhalten', a
   assert.deepEqual(launch.navigations, ['https://einsatzcockpit.com/einsatz/1?tab=karte#punkt']);
 });
 
+test('Launch-URLs akzeptieren nur eigene HTTPS-Hosts und sichere Schema-Pfade', () => {
+  const { context } = launcher();
+  for (const [url, target] of [
+    ['https://einsatzcockpit.com/kontakte', 'https://einsatzcockpit.com/kontakte'],
+    ['https://www.einsatzcockpit.com/kontakte', 'https://www.einsatzcockpit.com/kontakte'],
+    ['https://einsatzcockpit.com/kontakte?gruppe=1&aktiv=1#liste', 'https://einsatzcockpit.com/kontakte?gruppe=1&aktiv=1#liste'],
+    ['einsatzcockpit://open?path=/kontakte', 'https://einsatzcockpit.com/kontakte'],
+    ['einsatzcockpit://open?path=%2Fkontakte%3Fgruppe%3D1%26aktiv%3D1%23liste', 'https://einsatzcockpit.com/kontakte?gruppe=1&aktiv=1#liste'],
+    ['https://example.com/kontakte', null],
+    ['https://einsatzcockpit.com.evil.com/', null],
+    ['https://einsatzcockpit.com:444/', null],
+    ['https://user@einsatzcockpit.com/', null],
+    ['http://einsatzcockpit.com/', null],
+    ['javascript:alert(1)', null],
+    ['einsatzcockpit://open?path=//evil.com', null],
+    ['einsatzcockpit://open?path=/\\evil', null],
+    ['einsatzcockpit://open?path=%2F%5Cevil', null],
+    ['einsatzcockpit://open?path=kontakte', null],
+    ['einsatzcockpit://open?path=/kontakte%0Aevil', null],
+    ['einsatzcockpit://open?path=/kontakte%00', null],
+    ['einsatzcockpit://other?path=/kontakte', null],
+    ['einsatzcockpit://open/other?path=/kontakte', null],
+    ['einsatzcockpit://open', null],
+    ['invalid', null],
+    [undefined, null],
+  ]) assert.equal(context.resolveLaunchUrl(url), target, String(url));
+});
+
+test('Launcher öffnet Schema- und www-Links und behält el_base_url bei', async () => {
+  for (const [launchUrl, target] of [
+    ['einsatzcockpit://open?path=/kontakte', 'https://einsatzcockpit.com/kontakte'],
+    ['https://www.einsatzcockpit.com/kontakte?q=1', 'https://www.einsatzcockpit.com/kontakte?q=1'],
+  ]) {
+    const p = launcher({ launchUrl });
+    await p.context.startApp();
+    assert.deepEqual(p.navigations, [target]);
+    assert.equal(p.values.get('el_base_url'), 'https://einsatzcockpit.com');
+  }
+  const p = launcher({ launchUrl: 'einsatzcockpit://open?path=//evil.com' });
+  await p.context.startApp();
+  assert.equal(p.navigations.length, 0);
+  assert.equal(p.elements.get('setupCard').style.display, '');
+});
+
 test('Persönlicher Login öffnet direkt das Login ohne Live-Abfrage', async () => {
   const p = launcher();
   await p.context.openAccountLogin();

@@ -4,5 +4,11 @@
 <dict>
 	<key>aps-environment</key>
 	<string>development</string>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:einsatzcockpit.com</string>
+		<string>applinks:www.einsatzcockpit.com</string>
+		<string>webcredentials:einsatzcockpit.com</string>
+	</array>
 </dict>
 </plist>

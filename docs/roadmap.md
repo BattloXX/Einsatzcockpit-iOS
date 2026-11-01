@@ -20,7 +20,7 @@ Widget-Extension, gemeinsame Daten über App Groups und geeignete Aktualisierung
 
 Vorhandenes Background-Geolocation-Plugin an den aktiven Einsatz anbinden. Standort nur während eines aktiven Einsatzes mit verständlicher Zustimmung übertragen; Hintergrundberechtigung, Energieverbrauch und Beenden des Trackings testen. Die vorbereiteten plist-Texte und `UIBackgroundModes: location` allein starten kein Tracking.
 
-Associated Domains für die App einrichten und `apple-app-site-association` auf dem Server bereitstellen. Pfade und App-ID/Team-ID abstimmen, Launch-URL-Handling bei Kaltstart und laufender App testen. App-bound Domains ersetzen keine Universal-Link-Konfiguration.
+Universal Links: vorbereitet, wartet auf Apple-Account und Team-ID. Associated Domains, URL-Schema und Launch-URL-Auswertung sind vorbereitet; Einrichtung und Tests siehe [Deep Links](deep-links.md). `apple-app-site-association` auf dem Server bereitstellen und Pfade sowie App-ID/Team-ID abstimmen. Launch-URL-Handling bei Kaltstart und laufender App testen. App-bound Domains ersetzen keine Universal-Link-Konfiguration.
 
 ## P6 – Signierung und Veröffentlichung
 
