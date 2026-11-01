@@ -27,6 +27,10 @@
 		EC0000000000000000000200 /* DutyStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000201 /* DutyStateModel.swift */; };
 		EC0000000000000000000202 /* DutyStateClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000203 /* DutyStateClient.swift */; };
 		EC0000000000000000000300 /* ShortcutWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000301 /* ShortcutWidgets.swift */; };
+		EC0000000000000000000401 /* EinsatzActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000400 /* EinsatzActivityAttributes.swift */; };
+		EC0000000000000000000402 /* EinsatzActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000400 /* EinsatzActivityAttributes.swift */; };
+		EC0000000000000000000404 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000403 /* LiveActivityManager.swift */; };
+		EC0000000000000000000406 /* EinsatzLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000405 /* EinsatzLiveActivity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +84,9 @@
 		EC0000000000000000000201 /* DutyStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DutyStateModel.swift; sourceTree = "<group>"; };
 		EC0000000000000000000203 /* DutyStateClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DutyStateClient.swift; sourceTree = "<group>"; };
 		EC0000000000000000000301 /* ShortcutWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutWidgets.swift; sourceTree = "<group>"; };
+		EC0000000000000000000400 /* EinsatzActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Shared/EinsatzActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
+		EC0000000000000000000403 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		EC0000000000000000000405 /* EinsatzLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EinsatzLiveActivity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +114,7 @@
 			isa = PBXGroup;
 			children = (
 				EC0000000000000000000013 /* SharedKeys.swift */,
+				EC0000000000000000000400 /* EinsatzActivityAttributes.swift */,
 			);
 			name = Shared;
 			sourceTree = "<group>";
@@ -149,6 +157,7 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				EC0000000000000000000011 /* SharedCredentialSync.swift */,
+				EC0000000000000000000403 /* LiveActivityManager.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -176,6 +185,7 @@
 				EC0000000000000000000201 /* DutyStateModel.swift */,
 				EC0000000000000000000203 /* DutyStateClient.swift */,
 				EC0000000000000000000301 /* ShortcutWidgets.swift */,
+				EC0000000000000000000405 /* EinsatzLiveActivity.swift */,
 				EC0000000000000000000107 /* EinsatzStatusWidget.swift */,
 				EC0000000000000000000108 /* Info.plist */,
 				EC0000000000000000000109 /* EinsatzWidget.entitlements */,
@@ -330,7 +340,9 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				EC0000000000000000000010 /* SharedCredentialSync.swift in Sources */,
+				EC0000000000000000000404 /* LiveActivityManager.swift in Sources */,
 				EC0000000000000000000012 /* SharedKeys.swift in Sources */,
+				EC0000000000000000000401 /* EinsatzActivityAttributes.swift in Sources */,
 				9582B6852FE996820072D4E8 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -343,8 +355,10 @@
 				EC0000000000000000000200 /* DutyStateModel.swift in Sources */,
 				EC0000000000000000000202 /* DutyStateClient.swift in Sources */,
 				EC0000000000000000000300 /* ShortcutWidgets.swift in Sources */,
+				EC0000000000000000000406 /* EinsatzLiveActivity.swift in Sources */,
 				EC0000000000000000000101 /* EinsatzStatusWidget.swift in Sources */,
 				EC0000000000000000000102 /* SharedKeys.swift in Sources */,
+				EC0000000000000000000402 /* EinsatzActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

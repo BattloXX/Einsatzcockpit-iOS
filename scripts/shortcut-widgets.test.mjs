@@ -38,10 +38,10 @@ test('Verknüpfungen verwenden die drei Pfade, Symbole und statische Timelines',
   assert.match(swift, /if #available\(iOS 17.0, \*\) \{[\s\S]*?\.containerBackground\(for: \.widget\)[\s\S]*?\} else \{\s*content.background\(Color\(\.systemBackground\)\)/);
 });
 
-test('Bundle enthält alle vier Widgets in der gewünschten Reihenfolge', () => {
+test('Bundle enthält Status, Live Activity und Shortcuts in der gewünschten Reihenfolge', () => {
   const bundle = read('ios/EinsatzWidget/EinsatzWidgetBundle.swift');
   assert.deepEqual([...bundle.matchAll(/^\s+(\w+Widget)\(\)/gm)].map(([, name]) => name),
-    ['EinsatzStatusWidget', 'FahrtShortcutWidget', 'KontakteShortcutWidget', 'ObjekteShortcutWidget']);
+    ['EinsatzStatusWidget', 'EinsatzLiveActivityWidget', 'FahrtShortcutWidget', 'KontakteShortcutWidget', 'ObjekteShortcutWidget']);
 });
 
 const routers = '/home/johannes/projects/einsatzcockpit/app/routers';
