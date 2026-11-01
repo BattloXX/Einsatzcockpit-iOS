@@ -1,0 +1,27 @@
+{
+  "server_time": "2026-11-01T12:10:00Z",
+  "incident_count": 2,
+  "duty_active": true,
+  "incident": {
+    "id": 12,
+    "url": "/einsatz/12",
+    "alarm_type_code": "B2",
+    "address": "Hauptstraße 12, Musterstadt",
+    "lat": 48.2,
+    "lng": 16.3,
+    "meldung": "Rauchentwicklung im Gebäude",
+    "objekt": {
+      "id": 4,
+      "name": "Gemeindeamt",
+      "url": "/objekte/4"
+    },
+    "started_at": "2026-11-01T12:00:00Z",
+    "is_exercise": false,
+    "phase_index": 1,
+    "phase_count": 4,
+    "phase_label": "Anfahrt",
+    "unit_count": 3
+  },
+  "my_lage_queue": null,
+  "lage": null
+}

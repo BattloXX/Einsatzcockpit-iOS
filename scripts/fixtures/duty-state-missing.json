@@ -1,0 +1,11 @@
+{
+  "duty_active": true,
+  "incident": {
+    "alarm_type_code": "TH1",
+    "objekt": null
+  },
+  "my_lage_queue": {
+    "current": {}
+  },
+  "unknown_future_field": 42
+}

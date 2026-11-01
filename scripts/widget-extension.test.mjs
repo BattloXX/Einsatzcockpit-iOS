@@ -48,7 +48,7 @@ test('OpenStep-Klammern, Strings und EC-Objektverweise sind gültig', () => {
     assert.match(token, /^EC[0-9A-F]{22}$/);
     assert.ok(objects.has(token), `Nicht definiertes Objekt: ${token}`);
   }
-  const added = ecIds.filter(id => BigInt(`0x${id}`) >= BigInt('0xEC0000000000000000000100')).sort();
+  const added = ecIds.filter(id => BigInt(`0x${id}`) >= BigInt('0xEC0000000000000000000100') && BigInt(`0x${id}`) < BigInt('0xEC0000000000000000000200')).sort();
   assert.ok(added.length > 0);
   added.forEach((id, index) => assert.equal(BigInt(`0x${id}`), BigInt('0xEC0000000000000000000100') + BigInt(index)));
 });
@@ -101,7 +101,7 @@ test('Dateien, Gruppen, Sources und System-Frameworks sind eingebunden', () => {
   const projectBody = [...objects.values()].find(body => /isa = PBXProject;/.test(body));
   assert.ok(list(objects.get(ref(projectBody, 'mainGroup')), 'children').includes(groupId));
   const paths = list(group, 'children').map(id => setting(objects.get(id), 'path')).sort();
-  assert.deepEqual(paths, ['EinsatzStatusWidget.swift', 'EinsatzWidget.entitlements', 'EinsatzWidgetBundle.swift', 'Info.plist']);
+  assert.deepEqual(paths, ['DutyStateClient.swift', 'DutyStateModel.swift', 'EinsatzStatusWidget.swift', 'EinsatzWidget.entitlements', 'EinsatzWidgetBundle.swift', 'Info.plist']);
   for (const path of paths) assert.ok(existsSync(resolve(root, 'ios/EinsatzWidget', path)), path);
   const sourceRefs = body => list(phase(body, 'PBXSourcesBuildPhase'), 'files').map(id => ref(objects.get(id), 'fileRef'));
   const sharedRefs = [...objects].filter(([, body]) => /isa = PBXFileReference;/.test(body) && setting(body, 'path') === '../Shared/SharedKeys.swift');
@@ -111,7 +111,7 @@ test('Dateien, Gruppen, Sources und System-Frameworks sind eingebunden', () => {
   assert.ok(sourceRefs(widget).includes(sharedId));
   const sharedBuilds = [...objects.values()].filter(body => /isa = PBXBuildFile;/.test(body) && ref(body, 'fileRef') === sharedId);
   assert.equal(sharedBuilds.length, 2);
-  assert.deepEqual(sourceRefs(widget).map(id => setting(objects.get(id), 'path')).sort(), ['../Shared/SharedKeys.swift', 'EinsatzStatusWidget.swift', 'EinsatzWidgetBundle.swift']);
+  assert.deepEqual(sourceRefs(widget).map(id => setting(objects.get(id), 'path')).sort(), ['../Shared/SharedKeys.swift', 'DutyStateClient.swift', 'DutyStateModel.swift', 'EinsatzStatusWidget.swift', 'EinsatzWidgetBundle.swift']);
   assert.equal(list(phase(widget, 'PBXResourcesBuildPhase'), 'files').length, 0);
   const frameworks = list(phase(widget, 'PBXFrameworksBuildPhase'), 'files').map(id => objects.get(ref(objects.get(id), 'fileRef')));
   assert.equal(frameworks.length, 2);
@@ -167,13 +167,12 @@ test('Plists sind mit plistlib lesbar und enthalten Extension-Metadaten und App 
   assert.ok(appEntitlements['com.apple.security.application-groups'].includes('group.cloud.einsatzleiter.app'));
 });
 
-test('Platzhalter nutzt SharedKeys und schützt den iOS-17-Hintergrund', () => {
+test('Einsatzstatus schützt den iOS-17-Hintergrund und unterstützt Sperrbildschirm', () => {
   const swift = read('ios/EinsatzWidget/EinsatzStatusWidget.swift');
   assert.match(read('ios/EinsatzWidget/EinsatzWidgetBundle.swift'), /@main\s+struct EinsatzWidgetBundle: WidgetBundle/);
-  assert.match(swift, /UserDefaults\(suiteName: SharedKeys.groupId\)\?\.string\(forKey: SharedKeys.baseUrl\)/);
   assert.match(swift, /StaticConfiguration\(kind: "EinsatzStatusWidget"/);
-  assert.match(swift, /Timeline\(entries: \[entry\(\)\], policy: \.after\(Date\(\)\.addingTimeInterval\(900\)\)\)/);
+  assert.match(swift, /result.state.incident != nil \? 300 : 900/);
   assert.match(swift, /if #available\(iOS 17.0, \*\) \{[\s\S]*?\.containerBackground\(for: \.widget\)[\s\S]*?\} else \{\s*content.background\(Color\(\.systemBackground\)\)/);
-  assert.match(swift, /\.supportedFamilies\(\[\.systemSmall, \.systemMedium\]\)/);
-  for (const label of ['Einsatzcockpit', 'Kein Einsatz', 'Angemeldet', 'Anmeldung nötig']) assert.ok(swift.includes(`"${label}"`));
+  assert.match(swift, /\.supportedFamilies\(\[\.systemSmall, \.systemMedium, \.accessoryRectangular, \.accessoryInline\]\)/);
+  for (const label of ['Kein Einsatz', 'Anmeldung nötig', 'Dienst aktiv']) assert.ok(swift.includes(`"${label}"`));
 });

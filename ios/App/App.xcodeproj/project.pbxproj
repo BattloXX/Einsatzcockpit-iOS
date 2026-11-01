@@ -24,6 +24,8 @@
 		EC0000000000000000000103 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC000000000000000000010A /* WidgetKit.framework */; };
 		EC0000000000000000000104 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC000000000000000000010B /* SwiftUI.framework */; };
 		EC0000000000000000000105 /* EinsatzWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EC000000000000000000010C /* EinsatzWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EC0000000000000000000200 /* DutyStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000201 /* DutyStateModel.swift */; };
+		EC0000000000000000000202 /* DutyStateClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000203 /* DutyStateClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +76,8 @@
 		EC000000000000000000010A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		EC000000000000000000010B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		EC000000000000000000010C /* EinsatzWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = EinsatzWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC0000000000000000000201 /* DutyStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DutyStateModel.swift; sourceTree = "<group>"; };
+		EC0000000000000000000203 /* DutyStateClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DutyStateClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,6 +171,8 @@
 			isa = PBXGroup;
 			children = (
 				EC0000000000000000000106 /* EinsatzWidgetBundle.swift */,
+				EC0000000000000000000201 /* DutyStateModel.swift */,
+				EC0000000000000000000203 /* DutyStateClient.swift */,
 				EC0000000000000000000107 /* EinsatzStatusWidget.swift */,
 				EC0000000000000000000108 /* Info.plist */,
 				EC0000000000000000000109 /* EinsatzWidget.entitlements */,
@@ -331,6 +337,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				EC0000000000000000000100 /* EinsatzWidgetBundle.swift in Sources */,
+				EC0000000000000000000200 /* DutyStateModel.swift in Sources */,
+				EC0000000000000000000202 /* DutyStateClient.swift in Sources */,
 				EC0000000000000000000101 /* EinsatzStatusWidget.swift in Sources */,
 				EC0000000000000000000102 /* SharedKeys.swift in Sources */,
 			);
