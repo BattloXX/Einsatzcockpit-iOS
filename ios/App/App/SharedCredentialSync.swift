@@ -28,9 +28,12 @@ enum SharedCredentialSync {
                 changed = true
             }
         }
-        if deviceToken == nil, shared.object(forKey: SharedKeys.dutyState) != nil {
-            shared.removeObject(forKey: SharedKeys.dutyState)
-            changed = true
+        if deviceToken == nil {
+            if #available(iOS 16.2, *) { LiveActivityManager.endAll() }
+            if shared.object(forKey: SharedKeys.dutyState) != nil {
+                shared.removeObject(forKey: SharedKeys.dutyState)
+                changed = true
+            }
         }
         if changed {
             shared.set(Date().timeIntervalSince1970, forKey: SharedKeys.updatedAt)

@@ -10,7 +10,7 @@ P2 ist vorbereitet und wartet auf den Apple-Account. Firebase Messaging, FCM-Tok
 
 ## P3 – Live Activity
 
-ActivityKit für laufende Einsätze entwickeln, Anzeige auf Sperrbildschirm/Dynamic Island und Start-/Update-/Ende-Zustände definieren. Datenschutz, Ablaufzeiten und optional entfernte Updates via APNs berücksichtigen. Kein Android-Foreground-Service wird übertragen.
+P3 ist vorbereitet: ActivityKit-Anzeige auf Sperrbildschirm/Dynamic Island, lokaler Duty-State-Sync, Token-Meldung und Push-to-Start ab iOS 17.2 sind implementiert. macOS-CI und signierte Gerätetests mit APNs-Backend stehen aus. Aufbau, Vertrag und Grenzen: [Live Activity](live-activity.md). Kein Android-Foreground-Service wird übertragen.
 
 ## P4 – WidgetKit
 
