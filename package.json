@@ -1,0 +1,26 @@
+{
+  "name": "einsatzcockpit-ios",
+  "version": "2026.11.01",
+  "description": "Native iPhone- und iPad-App für einsatzcockpit.com (Capacitor-Wrapper)",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Kein lokales Bundle – App lädt direkt von einsatzcockpit.com'",
+    "sync": "npx cap sync ios",
+    "open": "npx cap open ios",
+    "run:ios": "npx cap run ios"
+  },
+  "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.3.1",
+    "@capacitor-community/keep-awake": "^8.0.0",
+    "@capacitor-mlkit/barcode-scanning": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/preferences": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.6.0",
+    "typescript": "^5.0.0"
+  }
+}

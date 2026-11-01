@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Über die App</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#081425; --surface:#152031; --border:#424754; --text:#d8e3fb;
+      --muted:#c2c6d6; --primary:#adc6ff; --primary-c:#4d8eff; --s-hi:#2a3548;
+      --mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+      --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:15px;
+      min-height:100dvh; width:100%; max-width:720px; margin:0 auto; display:flex;
+      flex-direction:column; gap:14px;
+      padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
+    header { display:flex; align-items:center; gap:12px; min-height:56px; }
+    .logo { width:42px; height:42px; object-fit:contain; }
+    h1 { font-size:1.2rem; color:var(--primary); }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+    dl { display:grid; grid-template-columns:auto 1fr; gap:12px; }
+    dt, p { color:var(--muted); line-height:1.5; }
+    dd { font-family:var(--mono); overflow-wrap:anywhere; }
+    button, a.btn { display:block; border:1px solid var(--border); border-radius:8px; padding:12px 16px;
+      font:600 .88rem var(--sans); text-align:center; text-decoration:none; cursor:pointer; }
+    a.btn { background:var(--primary-c); color:#00285d; }
+    button { background:var(--s-hi); color:var(--text); }
+    button:disabled { opacity:.45; cursor:default; }
+    :focus-visible { outline:3px solid var(--primary); outline-offset:3px; }
+  </style>
+</head>
+<body>
+  <header><img class="logo" src="logo.png" alt=""><h1>Über die App</h1></header>
+  <section class="card" aria-label="App-Informationen">
+    <dl>
+      <dt>App-Version</dt><dd id="appVersion">Nicht verfügbar</dd>
+      <dt>Server-URL</dt><dd>https://einsatzcockpit.com</dd>
+      <dt>Geräte-Token gesetzt</dt><dd id="deviceTokenStatus">Nicht verfügbar</dd>
+      <dt>Plattform</dt><dd id="platform">Nicht verfügbar</dd>
+    </dl>
+  </section>
+  <p>Push-Benachrichtigungen folgen in einer späteren Version.</p>
+  <a class="btn" href="https://einsatzcockpit.com/">Zurück zur App</a>
+  <button id="resetButton" type="button" onclick="resetDevice()" disabled>Geräteanmeldung zurücksetzen</button>
+  <p id="status" role="status"></p>
+<script>
+async function loadInfo() {
+  const { App, Preferences } = window.Capacitor.Plugins;
+  document.getElementById('platform').textContent = window.Capacitor.getPlatform();
+  document.getElementById('resetButton').disabled = false;
+  await Promise.all([
+    App.getInfo().then(info => {
+      document.getElementById('appVersion').textContent = info.version + ' (' + info.build + ')';
+    }),
+    Preferences.get({ key: 'el_device_token' }).then(({ value }) => {
+      document.getElementById('deviceTokenStatus').textContent = value ? 'Ja' : 'Nein';
+    }),
+  ]);
+}
+
+async function resetDevice() {
+  const button = document.getElementById('resetButton');
+  button.disabled = true;
+  try {
+    const { Preferences } = window.Capacitor.Plugins;
+    await Promise.all([
+      Preferences.remove({ key: 'el_device_token' }),
+      Preferences.remove({ key: 'ec_device_access_invalid' }),
+      Preferences.remove({ key: 'el_used_account_login' }),
+    ]);
+    window.location.replace('https://einsatzcockpit.com/logout');
+  } catch (_) {
+    document.getElementById('status').textContent = 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.';
+    button.disabled = false;
+  }
+}
+
+const bridgeStart = Date.now();
+function waitForBridge() {
+  if (window.Capacitor?.Plugins?.Preferences && window.Capacitor.Plugins.App) {
+    loadInfo().catch(() => {
+      document.getElementById('status').textContent = 'App-Informationen konnten nicht vollständig geladen werden.';
+    });
+  } else if (Date.now() - bridgeStart < 3000) {
+    setTimeout(waitForBridge, 100);
+  } else {
+    document.getElementById('status').textContent = 'App-Informationen sind nur innerhalb der iOS-App verfügbar.';
+  }
+}
+waitForBridge();
+</script>
+</body>
+</html>

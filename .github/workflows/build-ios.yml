@@ -1,0 +1,77 @@
+name: Build iOS Simulator
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  launcher-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Launcher und Offline-Seite testen
+        run: |
+          for test in scripts/*.test.mjs; do node "$test"; done
+          python3 -c 'import plistlib; plistlib.load(open("ios/App/App/Info.plist", "rb"))'
+          bash -n scripts/mac-setup.sh scripts/mac-run-simulator.sh
+
+  build-simulator:
+    needs: launcher-tests
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Neuestes Xcode 26 auswählen
+        shell: bash
+        run: |
+          XCODE_APP=$(python3 - <<'PY'
+          import glob, re
+          paths = glob.glob('/Applications/Xcode_26*.app')
+          if not paths:
+              raise SystemExit('Xcode 26 ist nicht installiert')
+          print(max(paths, key=lambda p: tuple(map(int, re.findall(r'\d+', p)))))
+          PY
+          )
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Icons und Splash generieren
+        run: |
+          if [ ! -f assets/icon.png ]; then cp assets/Logo-rot.png assets/icon.png; fi
+          npx capacitor-assets generate --ios
+      - run: npx cap sync ios
+      - name: Pods installieren
+        working-directory: ios/App
+        run: pod install
+      - name: Simulator-App bauen
+        shell: bash
+        run: |
+          VERSION=$(node scripts/ios-version.mjs)
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
+            -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/einsatzcockpit-derived" \
+            ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" build
+      - name: App archivieren
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/einsatzcockpit-derived/Build/Products/Debug-iphonesimulator/App.app" \
+            "$RUNNER_TEMP/einsatzcockpit-ios-simulator.zip"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: einsatzcockpit-ios-simulator
+          path: ${{ runner.temp }}/einsatzcockpit-ios-simulator.zip
+          if-no-files-found: error

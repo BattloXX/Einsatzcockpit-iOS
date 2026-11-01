@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Einsatzcockpit</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8; --blue: #3b82f6; --red: #ef4444;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100dvh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: calc(32px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left)); gap: 24px; text-align: center;
+    }
+    .logo { width: 140px; height: 140px; object-fit: contain; }
+    .sub { font-size: .9rem; color: var(--muted); }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 24px; width: 100%; max-width: 360px;
+    }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+    .card p { font-size: .85rem; color: var(--muted); line-height: 1.5; }
+    button {
+      width: 100%; border: none; border-radius: 10px; cursor: pointer;
+      font-size: .95rem; font-weight: 600; padding: 14px;
+      background: var(--blue); color: #fff; margin-top: 16px;
+      transition: opacity .15s;
+    }
+    button:active { opacity: .75; }
+    button:disabled { opacity: .45; cursor: default; }
+    button.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .divider { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; color: var(--muted); font-size: .8rem; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border);
+      border-top-color: var(--blue); border-radius: 50%;
+      animation: spin .7s linear infinite; margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #error { color: var(--red); font-size: .85rem; display: none; }
+  </style>
+</head>
+<body>
+  <img class="logo" src="logo.png" alt="Einsatzcockpit">
+  <div class="sub" id="statusLine">Startet…</div>
+  <div class="spinner" id="spinner"></div>
+
+  <!-- Erster Start / kein Token -->
+  <div class="card" id="setupCard" style="display:none;">
+    <h2>👤 Mit Account anmelden</h2>
+    <p>Persönlicher Account (Benutzername/Passwort)</p>
+    <button onclick="openAccountLogin()">Mit Account anmelden</button>
+    <div class="divider"><span>oder Geräte-Login</span></div>
+    <p>Scanne den QR-Code aus dem Admin-Bereich<br>(Admin → Geräte-Login → + Gerät registrieren)</p>
+    <button class="btn-secondary" id="scanBtn" onclick="startScan()">QR-Code scannen</button>
+    <button class="btn-secondary" onclick="openPinPairing()">PIN eingeben statt scannen</button>
+  </div>
+
+  <div id="error"></div>
+
+<script>
+// Push folgt mit Firebase Messaging. Das APNs-Token darf nie als FCM-Token
+// ans Backend gehen. Bis zur Integration bleibt die Registrierung deaktiviert.
+async function registerPushToken() {
+  return null;
+}
+
+function withFcmParam(url, fcmToken) {
+  if (!fcmToken) return url;
+  return url + (url.includes('?') ? '&' : '?') + 'fcm_token=' + encodeURIComponent(fcmToken);
+}
+
+async function isOffline() {
+  return navigator.onLine === false;
+}
+
+// Capacitor injiziert die Bridge asynchron in die lokale Launcher-Seite.
+function waitForCapacitor(cb, timeout = 3000) {
+  const start = Date.now();
+  function check() {
+    if (window.Capacitor?.Plugins?.Preferences) {
+      cb();
+    } else if (Date.now() - start < timeout) {
+      setTimeout(check, 100);
+    } else {
+      window.location.replace('https://einsatzcockpit.com/');
+    }
+  }
+  check();
+}
+
+async function startApp() {
+  const { Preferences, App } = window.Capacitor.Plugins;
+  await Preferences.set({ key: 'el_live_enabled', value: '0' });
+  await Preferences.set({ key: 'el_base_url', value: 'https://einsatzcockpit.com' });
+
+  // Logout und PIN-Rückkehr müssen vor einer möglichen Launch-URL wirken.
+  const pinParams = new URLSearchParams(window.location.search);
+  if (pinParams.get('native_logout') === '1') {
+    await Promise.all([
+      Preferences.remove({ key: 'el_device_token' }),
+      Preferences.remove({ key: 'ec_device_access_invalid' }),
+      Preferences.remove({ key: 'el_used_account_login' }),
+    ]);
+    window.location.replace('https://einsatzcockpit.com/logout');
+    return;
+  }
+  // Die lokale Origin speichert den von der PIN-Bestätigung gelieferten Token.
+  const pinToken = pinParams.get('pin_device_token');
+  if (pinToken) {
+    await Preferences.set({ key: 'el_device_token', value: pinToken });
+    await Preferences.remove({ key: 'ec_device_access_invalid' });
+    setStatus('Anmelden…');
+    window.location.replace(withFcmParam(
+      'https://einsatzcockpit.com/geraet-login?token=' + encodeURIComponent(pinToken) + '&native=1',
+      await registerPushToken()));
+    return;
+  }
+
+  // Launch-URL beim Kaltstart erhalten. Universal Links werden später eingerichtet.
+  try {
+    const launch = await App?.getLaunchUrl();
+    if (launch?.url) {
+      const target = new URL(launch.url);
+      if (target.origin === 'https://einsatzcockpit.com' && !target.username && !target.password) {
+        window.location.replace(target.href);
+        return;
+      }
+    }
+  } catch (_) { /* Ohne gültige Launch-URL normal starten. */ }
+
+  const { value: deviceToken } = await Preferences.get({ key: 'el_device_token' });
+  const { value: accessInvalid } = await Preferences.get({ key: 'ec_device_access_invalid' });
+  if (accessInvalid) {
+    showSetup();
+    showError('Der Gerätezugang ist abgelaufen oder wurde deaktiviert. Bitte das Gerät erneut verbinden.');
+    document.getElementById('scanBtn').textContent = 'Erneut verbinden (QR-Code scannen)';
+    return;
+  }
+  const { value: usedAccountLogin } = await Preferences.get({ key: 'el_used_account_login' });
+  if (deviceToken || usedAccountLogin) {
+    if (await isOffline()) {
+      // Login benötigt den Server. Die gecachte Startseite braucht keine Query;
+      // vorhandene Cookies und der PWA-Service-Worker übernehmen die Sitzung.
+      setStatus('Offline – zeige zuletzt geladene Ansicht…');
+      window.location.replace('https://einsatzcockpit.com/');
+      return;
+    }
+    setStatus('Anmelden…');
+    const target = deviceToken
+      ? 'https://einsatzcockpit.com/geraet-login?token=' + encodeURIComponent(deviceToken) + '&native=1'
+      : 'https://einsatzcockpit.com/?native=1';
+    window.location.replace(withFcmParam(target, await registerPushToken()));
+    return;
+  }
+  showSetup();
+}
+
+waitForCapacitor(() => startApp().catch(() => {
+  showSetup();
+  showError('App konnte nicht gestartet werden. Bitte erneut anmelden.');
+}));
+
+function showSetup() {
+  setStatus('Anmeldung erforderlich');
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('setupCard').style.display = '';
+}
+
+function openPinPairing() {
+  window.location.replace('https://einsatzcockpit.com/geraet-login-pin?native=1');
+}
+
+async function openAccountLogin() {
+  try {
+    const { Preferences } = window.Capacitor.Plugins;
+    await Preferences.set({ key: 'el_live_enabled', value: '0' });
+    await Preferences.set({ key: 'el_used_account_login', value: '1' });
+  } catch (_) { /* Login funktioniert auch ohne gespeicherte Auswahl. */ }
+  window.location.replace(withFcmParam('https://einsatzcockpit.com/login?native=1', await registerPushToken()));
+}
+
+function setStatus(msg) {
+  document.getElementById('statusLine').textContent = msg;
+}
+
+async function startScan() {
+  const { Preferences, BarcodeScanner } = window.Capacitor.Plugins;
+  if (!BarcodeScanner) {
+    showError('QR-Scanner-Plugin nicht verfügbar.');
+    return;
+  }
+  document.getElementById('scanBtn').disabled = true;
+  try {
+    const { camera } = await BarcodeScanner.requestPermissions();
+    if (camera !== 'granted' && camera !== 'limited') {
+      showError('Kamerazugriff verweigert. Bitte in den Einstellungen des iPhone/iPad erlauben oder PIN eingeben.');
+      return;
+    }
+    setStatus('QR-Code scannen…');
+    const { barcodes } = await BarcodeScanner.scan();
+    if (!barcodes?.length) {
+      showError('Kein QR-Code gescannt.');
+      return;
+    }
+    await handleQrResult(barcodes[0].rawValue, Preferences);
+  } catch (e) {
+    showError('Scan-Fehler: ' + (e.message || e));
+  } finally {
+    document.getElementById('scanBtn').disabled = false;
+  }
+}
+
+async function handleQrResult(raw, Preferences) {
+  let parsed;
+  try { parsed = new URL(raw); }
+  catch (_) { showError('Ungültiger QR-Code.'); return; }
+  if (parsed.protocol !== 'https:') {
+    showError('QR-Code muss eine https-Adresse enthalten.');
+    return;
+  }
+  if (parsed.origin !== 'https://einsatzcockpit.com' || parsed.username || parsed.password) {
+    showError('QR-Code von unbekanntem Server – abgelehnt.');
+    return;
+  }
+  const mode = parsed.searchParams.get('mode');
+  if (mode === 'sms-gateway') {
+    showError('SMS-Gateway wird in der iOS-App nicht unterstützt.');
+    return;
+  }
+  // Auch unit+sms-gateway wird ausschließlich als Gerät angemeldet.
+  const token = parsed.searchParams.get('token');
+  if (!token) { showError('QR-Code enthält kein Token.'); return; }
+  setStatus('Anmelden…');
+  await Preferences.set({ key: 'el_device_token', value: token });
+  await Preferences.remove({ key: 'ec_device_access_invalid' });
+  await Preferences.set({ key: 'el_base_url', value: parsed.origin });
+  window.location.replace(withFcmParam(
+    parsed.origin + '/geraet-login?token=' + encodeURIComponent(token) + '&native=1',
+    await registerPushToken()));
+}
+
+function showError(msg) {
+  setStatus('Fehler');
+  const el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('scanBtn').disabled = false;
+}
+</script>
+</body>
+</html>
