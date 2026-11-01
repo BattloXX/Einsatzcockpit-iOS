@@ -18,6 +18,20 @@ Die Timeline enthält einen Eintrag und bittet bei aktivem Einsatz nach fünf Mi
 
 Unterstützt werden nur Geräte-Token-Anmeldungen; ein reines Session-Cookie genügt nicht. Push-Aktualisierung und Live Activity sind spätere Erweiterungen.
 
+## Verknüpfungs-Widgets
+
+Die drei Verknüpfungen zeigen Symbol und Titel und öffnen die jeweilige App-Seite:
+
+| Widget | Pfad | SF Symbol |
+| --- | --- | --- |
+| Kontakte | `/kontakte` | `person.2.fill` |
+| Objekte | `/objekte/` | `building.2.fill` |
+| Fahrt erfassen | `/fahrtenbuch/neu` | `car.fill` |
+
+Alle drei unterstützen kleine Home-Bildschirm-Widgets sowie kreisförmige und rechteckige Sperrbildschirm-Widgets (ab iOS 16.0; die Extension setzt iOS 16.2 voraus). Sie verwenden statische Timelines ohne geplante Aktualisierung und öffnen die Pfade über `einsatzcockpit://open?path=…`. Eine fehlende Anmeldung wird beim Öffnen von der App behandelt.
+
+Im Gegensatz zu Android gibt es bei „Fahrt erfassen“ keine Fahrzeugauswahl pro Widget. Dafür wären iOS-Konfigurationsintents nötig. Die Fahrzeug-Vorauswahl erfolgt serverseitig über das Gerät.
+
 ## Gemeinsamer Speicher
 
 Die Widget-Extension kann die Capacitor Preferences der App nicht lesen. Die App Group `group.cloud.einsatzleiter.app` stellt dafür einen gemeinsamen UserDefaults-Container bereit. `ios/Shared/SharedKeys.swift` definiert die Schlüssel und wird von App und Extension kompiliert.

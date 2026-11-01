@@ -101,7 +101,7 @@ test('Dateien, Gruppen, Sources und System-Frameworks sind eingebunden', () => {
   const projectBody = [...objects.values()].find(body => /isa = PBXProject;/.test(body));
   assert.ok(list(objects.get(ref(projectBody, 'mainGroup')), 'children').includes(groupId));
   const paths = list(group, 'children').map(id => setting(objects.get(id), 'path')).sort();
-  assert.deepEqual(paths, ['DutyStateClient.swift', 'DutyStateModel.swift', 'EinsatzStatusWidget.swift', 'EinsatzWidget.entitlements', 'EinsatzWidgetBundle.swift', 'Info.plist']);
+  assert.deepEqual(paths, ['DutyStateClient.swift', 'DutyStateModel.swift', 'EinsatzStatusWidget.swift', 'EinsatzWidget.entitlements', 'EinsatzWidgetBundle.swift', 'Info.plist', 'ShortcutWidgets.swift']);
   for (const path of paths) assert.ok(existsSync(resolve(root, 'ios/EinsatzWidget', path)), path);
   const sourceRefs = body => list(phase(body, 'PBXSourcesBuildPhase'), 'files').map(id => ref(objects.get(id), 'fileRef'));
   const sharedRefs = [...objects].filter(([, body]) => /isa = PBXFileReference;/.test(body) && setting(body, 'path') === '../Shared/SharedKeys.swift');
@@ -111,7 +111,7 @@ test('Dateien, Gruppen, Sources und System-Frameworks sind eingebunden', () => {
   assert.ok(sourceRefs(widget).includes(sharedId));
   const sharedBuilds = [...objects.values()].filter(body => /isa = PBXBuildFile;/.test(body) && ref(body, 'fileRef') === sharedId);
   assert.equal(sharedBuilds.length, 2);
-  assert.deepEqual(sourceRefs(widget).map(id => setting(objects.get(id), 'path')).sort(), ['../Shared/SharedKeys.swift', 'DutyStateClient.swift', 'DutyStateModel.swift', 'EinsatzStatusWidget.swift', 'EinsatzWidgetBundle.swift']);
+  assert.deepEqual(sourceRefs(widget).map(id => setting(objects.get(id), 'path')).sort(), ['../Shared/SharedKeys.swift', 'DutyStateClient.swift', 'DutyStateModel.swift', 'EinsatzStatusWidget.swift', 'EinsatzWidgetBundle.swift', 'ShortcutWidgets.swift']);
   assert.equal(list(phase(widget, 'PBXResourcesBuildPhase'), 'files').length, 0);
   const frameworks = list(phase(widget, 'PBXFrameworksBuildPhase'), 'files').map(id => objects.get(ref(objects.get(id), 'fileRef')));
   assert.equal(frameworks.length, 2);
