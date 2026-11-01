@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.mobileprovision
+*.p12
+*.p8
+GoogleService-Info.plist
+.env

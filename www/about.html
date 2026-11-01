@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Über die App</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* HydroFlow-/Einsatzcockpit-Design-Tokens (identisch zu gateway.html) */
+    :root {
+      --bg:#081425; --s0:#040e1f; --surface:#152031; --s2:#111c2d; --s-hi:#2a3548;
+      --border:#424754; --line2:#2a3548;
+      --text:#d8e3fb; --muted:#c2c6d6; --faint:#8c909f;
+      --primary:#adc6ff; --primary-c:#4d8eff;
+      --green:#7ee7a0; --red:#ffb4ab; --yellow:#ffb95f;
+      --mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+      --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      width:100%; max-width:720px; margin:0 auto;
+      gap: 14px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .header { position:sticky; top:0; z-index:3; min-height:56px; background:var(--bg); display: flex; align-items: center; gap: 12px; }
+    .header-logo { width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; object-fit: contain; }
+    .header-title { font-size: 1.2rem; font-weight: 700; color: var(--primary); line-height: 1.1; }
+    .header-sub {
+      font-family: var(--mono); font-size: .62rem; letter-spacing: .06em;
+      color: var(--faint); text-transform: uppercase; margin-top: 3px;
+    }
+
+    /* ── Panels (glass) ──────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .card-label {
+      font-family: var(--mono); font-size: .62rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--faint); margin-bottom: 10px;
+    }
+
+    .card-alarm { border-color:var(--red); border-left:4px solid var(--red); }
+    .alarm-heading { display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap; }
+    .alarm-warning { color:var(--red);font-size:.82rem;line-height:1.4; }
+    .alarm-checklist { list-style:none;margin-top:14px; }
+    .alarm-checklist li { display:flex;align-items:center;gap:8px;padding:8px 0;font-size:.82rem;color:var(--red); }
+    .alarm-checklist li::before { content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0; }
+    .alarm-checklist li.ready { color:var(--green); }
+    .alarm-checklist li > span { flex:1;min-width:0; }
+    .alarm-push { margin-top:16px;padding-top:14px;border-top:1px solid var(--line2); }
+    .alarm-push .alarm-checklist { margin-top:0; }
+    #alarmPushRow { flex-wrap:wrap; }
+    #alarmPushRow > span { flex-basis:120px; }
+    #pushStatusBadge { display:block;font-size:.72rem;overflow-wrap:anywhere; }
+    #btnPushServerTest { width:100%;margin-top:10px; }
+    .alarm-checklist button[hidden] { display:none; }
+    .alarm-checklist button { font-size:.72rem;padding:6px 8px;flex-shrink:0; }
+    .alarm-volume { margin-top:12px;font-size:.85rem; }
+    .alarm-volume input { display:block;width:100%;margin:12px 0; }
+    .alarm-volume select { display:block;width:100%;box-sizing:border-box;margin:8px 0 12px;padding:10px;border:1px solid var(--line2);border-radius:8px;background:var(--bg);color:var(--text);font:inherit; }
+    .alarm-note { color:var(--muted);font-size:.78rem;line-height:1.45;margin-top:10px; }
+    .alarm-actions { display:flex;flex-direction:column;gap:10px;margin-top:14px; }
+
+    /* ── Buttons ─────────────────────────────────────────────────────────── */
+    button, a.btn {
+      border: none; border-radius: 8px; cursor: pointer; font-family: var(--sans);
+      font-size: .88rem; font-weight: 600; padding: 10px 16px; transition: opacity .15s, filter .15s;
+      text-align: center; text-decoration: none; display: inline-block;
+    }
+    button:disabled { opacity: .45; cursor: default; }
+    button:active:not(:disabled), a.btn:active { opacity: .8; }
+    .btn-primary { background: var(--primary-c); color: #00285d; font-weight: 700; }
+    .btn-ghost   { background: var(--s-hi); color: var(--text); border: 1px solid var(--border); }
+
+    /* ── Version / Update ────────────────────────────────────────────────── */
+    #deviceVersion { font-size:1.7rem; font-weight:700; overflow-wrap:anywhere; }
+    #deviceProperties { line-height:1.7; overflow-wrap:anywhere; }
+    .version-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; margin-top: 8px; }
+    .version-row:first-of-type { margin-top: 0; }
+    .version-label { color: var(--muted); min-width: 84px; }
+    .version-value { font-family: var(--mono); color: var(--text); }
+    .update-available { color: var(--yellow); }
+    .up-to-date { color: var(--green); }
+    .update-channel-select { background:var(--s2); border:1px solid var(--border); border-radius:7px; color:var(--text); font:inherit; padding:6px 8px; }
+
+    /* ── Gateway-Status ──────────────────────────────────────────────────── */
+    .badge-soft {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .68rem; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+      background: var(--s-hi); color: var(--faint); border: 1px solid var(--border);
+    }
+    .badge-soft::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge-soft.on { background: rgba(126,231,160,.14); color: var(--green); border-color: rgba(126,231,160,.4); }
+    .badge-soft.off { background: rgba(255,180,171,.14); color: var(--red); border-color: rgba(255,180,171,.4); }
+
+    /* ── Offline-Datenstand ─────────────────────────────────────────────── */
+    .cache-summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .cache-item { background:var(--s2); border:1px solid var(--line2); border-radius:10px; padding:12px; }
+    .cache-item__name { color:var(--muted); font-size:.8rem; }
+    .cache-item__count { font-family:var(--mono); font-size:1.25rem; font-weight:700; color:var(--primary); margin-top:4px; }
+    .cache-item__detail { color:var(--faint); font-size:.72rem; margin-top:4px; line-height:1.35; }
+    .cache-activity { margin-top:12px; border-top:1px solid var(--line2); padding-top:12px; }
+    .cache-activity__current { color:var(--muted); font-size:.82rem; line-height:1.45; }
+    .cache-log { list-style:none; margin-top:9px; max-height:150px; overflow:auto; }
+    .cache-log li { display:grid; grid-template-columns:54px 1fr; gap:8px; padding:7px 0; border-top:1px solid rgba(66,71,84,.55); color:var(--muted); font-size:.76rem; line-height:1.35; }
+    .cache-log time { font-family:var(--mono); color:var(--faint); font-size:.68rem; }
+
+    .toggle-row { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;color:var(--text);font-size:.88rem; }
+    .toggle { position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0; }
+    .toggle input { opacity:0;width:0;height:0; }
+    .toggle-slider { position:absolute;inset:0;cursor:pointer;background:var(--s-hi);border:1px solid var(--border);border-radius:999px;transition:.2s; }
+    .toggle-slider::before { content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:var(--muted);border-radius:50%;transition:.2s; }
+    .toggle input:checked + .toggle-slider { background:var(--primary-c); }
+    .toggle input:checked + .toggle-slider::before { transform:translateX(20px);background:#fff; }
+    .toggle input:disabled + .toggle-slider { opacity:.45;cursor:default; }
+
+    /* ── Toast ───────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(calc(100% + 24px));
+      background: var(--s-hi); border: 1px solid var(--border); border-radius: 999px;
+      padding: 9px 20px; font-size: .85rem; transition: transform .25s ease;
+      pointer-events: none; width:max-content; max-width:calc(100vw - 32px); overflow-wrap:anywhere; text-align:center; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    .i { width:20px; height:20px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; vertical-align:middle; }
+    button, a.btn, .icon-label { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+    .card-label > .i { margin-right:6px; }
+    button:focus-visible, a.btn:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+    .toggle input:focus-visible + .toggle-slider { outline:2px solid var(--primary); outline-offset:3px; }
+    @media (prefers-reduced-motion:reduce) {
+      *, *::before, *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+    }
+
+    [hidden] { display:none !important; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+    .settings-tabs { position:sticky; top:56px; z-index:2; display:flex; gap:4px; overflow-x:auto; background:var(--bg); padding:8px 0; border-bottom:1px solid var(--line2); }
+    .settings-tabs [role="tab"] { flex:1 0 auto; min-height:44px; padding:10px 12px; background:var(--s2); color:var(--muted); border:1px solid transparent; white-space:nowrap; }
+    .settings-tabs [aria-selected="true"] { background:var(--s-hi); color:var(--primary); border-color:var(--primary); }
+    .tab-dot { width:7px; height:7px; border-radius:50%; background:var(--red); flex-shrink:0; }
+    .tab-panel { display:flex; flex-direction:column; gap:14px; min-width:0; }
+    .tab-panel:focus-visible { outline:2px solid var(--primary); outline-offset:3px; border-radius:12px; }
+    button, a.btn { min-height:44px; }
+    #nativeLogText { margin-top:12px; }
+    @media (max-width:440px) {
+      .settings-tabs { overflow-x:visible; }
+      .settings-tabs [role="tab"] { flex:1 1 0; min-width:0; flex-direction:column; gap:2px; padding:6px 2px; font-size:.72rem; }
+    }
+    @media (max-width:359px) {
+      .tab-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <!-- Tabler Icons v3.50.0, Copyright (c) Paweł Kuna, MIT License: https://github.com/tabler/tabler-icons/blob/v3.50.0/LICENSE -->
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M5 12l14 0" />
+  <path d="M5 12l6 6" />
+  <path d="M5 12l6 -6" /></symbol>
+    <symbol id="i-bell-ringing" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M10 5a2 2 0 0 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" />
+  <path d="M9 17v1a3 3 0 0 0 6 0v-1" />
+  <path d="M21 6.727a11.05 11.05 0 0 0 -2.794 -3.727" />
+  <path d="M3 6.727a11.05 11.05 0 0 1 2.792 -3.727" /></symbol>
+    <symbol id="i-broadcast" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M18.364 19.364a9 9 0 1 0 -12.728 0" />
+  <path d="M15.536 16.536a5 5 0 1 0 -7.072 0" />
+  <path d="M11 13a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M4 6a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" />
+  <path d="M4 6v6a8 3 0 0 0 16 0v-6" />
+  <path d="M4 12v6a8 3 0 0 0 16 0v-6" /></symbol>
+    <symbol id="i-device-mobile" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14" />
+  <path d="M11 4h2" />
+  <path d="M12 17v.01" /></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+  <path d="M7 11l5 5l5 -5" />
+  <path d="M12 4l0 12" /></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+  <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" />
+  <path d="M9 9l1 0" />
+  <path d="M9 13l6 0" />
+  <path d="M9 17l6 0" /></symbol>
+    <symbol id="i-player-play" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M7 4v16l13 -8l-13 -8" /></symbol>
+    <symbol id="i-plug-connected" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M7 12l5 5l-1.5 1.5a3.536 3.536 0 1 1 -5 -5l1.5 -1.5" />
+  <path d="M17 12l-5 -5l1.5 -1.5a3.536 3.536 0 1 1 5 5l-1.5 1.5" />
+  <path d="M3 21l2.5 -2.5" />
+  <path d="M18.5 5.5l2.5 -2.5" />
+  <path d="M10 11l-2 2" />
+  <path d="M13 14l-2 2" /></symbol>
+    <symbol id="i-puzzle" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M4 7h3a1 1 0 0 0 1 -1v-1a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 0 1 1h1a2 2 0 0 1 0 4h-1a1 1 0 0 0 -1 1v3a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-1a2 2 0 0 0 -4 0v1a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h1a2 2 0 0 0 0 -4h-1a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1" /></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
+  <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M10 14l11 -11" />
+  <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" /></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065" />
+  <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+  <path d="M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+  <path d="M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+  <path d="M8.7 10.7l6.6 -3.4" />
+  <path d="M8.7 13.3l6.6 3.4" /></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path stroke="none" d="M0 0h24v24H0z" fill="none" />
+  <path d="M4 7l16 0" />
+  <path d="M10 11l0 6" />
+  <path d="M14 11l0 6" />
+  <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+  <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></symbol>
+  </svg>
+
+  <div class="header">
+    <img class="header-logo" src="logo.png" alt="Einsatzcockpit">
+    <div>
+      <div class="header-title">Über die App</div>
+      <div class="header-sub">Einsatzcockpit Android</div>
+    </div>
+  </div>
+
+  <div class="settings-tabs" role="tablist" aria-label="Einstellungen">
+    <button type="button" role="tab" id="tab-alarm" aria-controls="panel-alarm" aria-selected="true" tabindex="0"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-bell-ringing"/></svg><span class="tab-label">Alarm</span><span id="alarmTabDot" class="tab-dot" hidden aria-hidden="true"></span></button>
+    <button type="button" role="tab" id="tab-geraet" aria-controls="panel-geraet" aria-selected="false" tabindex="-1"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-device-mobile"/></svg><span class="tab-label">Gerät</span></button>
+    <button type="button" role="tab" id="tab-offline" aria-controls="panel-offline" aria-selected="false" tabindex="-1"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-database"/></svg><span class="tab-label">Offline</span></button>
+    <button type="button" role="tab" id="tab-diagnose" aria-controls="panel-diagnose" aria-selected="false" tabindex="-1"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-file-text"/></svg><span class="tab-label">Diagnose</span></button>
+  </div>
+
+  <section class="tab-panel" role="tabpanel" id="panel-alarm" aria-labelledby="tab-alarm" tabindex="0">
+  <div class="card card-alarm" id="alarmCard">
+    <div class="card-label alarm-heading">
+      <span><svg class="i" aria-hidden="true" focusable="false"><use href="#i-bell-ringing"/></svg> Einsatzalarm</span>
+      <span class="badge-soft" id="alarmStatusBadge">Prüfe…</span>
+    </div>
+    <p id="alarmSetupHint" class="alarm-warning" style="display:none;">Alarm ist nicht vollständig eingerichtet – siehe rote Punkte</p>
+    <label class="toggle-row"><span>Alarmton auch bei Lautlos/Vibration (Vollbild)</span><span class="toggle"><input type="checkbox" id="alarmEnabledToggle" onchange="setAlarmEnabled(this.checked)"><span class="toggle-slider"></span></span></label>
+    <label class="toggle-row"><span>Auch bei „Nicht stören“</span><span class="toggle"><input type="checkbox" id="alarmDndToggle" onchange="configureAlarmDnd(this.checked)"><span class="toggle-slider"></span></span></label>
+    <section class="alarm-push" aria-labelledby="pushHeading">
+      <h2 class="card-label" id="pushHeading">Push-Benachrichtigungen</h2>
+      <p class="alarm-note">Normale Meldungen (Einsatzinfos, Nachrichten) kommen als Push-Benachrichtigung.</p>
+      <ul class="alarm-checklist" aria-label="Push-Einrichtung">
+        <!-- Push-Benachrichtigungen: hier statt auf /admin/push-nachrichten, weil die
+             Capacitor-Bridge auf DIESER lokalen Seite garantiert verfuegbar ist - auf
+             der remote nachgeladenen Admin-Seite ist sie das bekanntermassen nicht
+             zuverlaessig (siehe Backend main.py::session_middleware-Kommentar). -->
+        <li id="alarmPushRow"><span>Push beim Server eingerichtet <span id="pushStatusBadge">Prüfe…</span></span><button class="btn-ghost" id="btnRegisterPush" onclick="registerPushAndContinue()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-plug-connected"/></svg><span class="btn-text">Registrieren</span></button></li>
+      </ul>
+      <p id="pushSetupHint" style="display:none;font-size:.82rem;color:var(--muted);margin-top:10px;">
+        Tippe auf „Registrieren“, um dieses Gerät beim Server einzurichten.
+      </p>
+      <p id="pushDeliveryWarning" style="display:none;font-size:.82rem;color:var(--yellow);margin-top:10px;">
+        Der letzte Zustellversuch ist fehlgeschlagen.
+      </p>
+      <button class="btn-ghost" id="btnPushServerTest" onclick="sendServerTestPush()" disabled><svg class="i" aria-hidden="true" focusable="false"><use href="#i-send"/></svg><span class="btn-text">Test-Push über Server</span></button>
+    </section>
+    <ul class="alarm-checklist" aria-label="Alarm-Einrichtung">
+      <li id="alarmNotificationsRow"><span>Benachrichtigungen erlaubt</span><button class="btn-ghost" onclick="requestAlarmNotifications()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="btn-text">Erlauben</span></button></li>
+      <li id="alarmFullScreenRow"><span>Vollbild-Alarm erlaubt</span><button class="btn-ghost" onclick="openAlarmSetting('fullscreen')"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="btn-text">Erlauben</span></button></li>
+      <li id="alarmBatteryRow"><span>Akku-Optimierung aus</span><button class="btn-ghost" onclick="openAlarmSetting('battery')"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="btn-text">Einrichten</span></button></li>
+      <li id="alarmDndRow"><span>Nicht stören übergehen</span><button class="btn-ghost" onclick="configureAlarmDnd(true)"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="btn-text">Einrichten</span></button></li>
+      <li id="alarmVolumeRow"><span>Alarmlautstärke System: <span id="alarmSystemVolume">–</span></span><button class="btn-ghost" onclick="document.getElementById('alarmVolumeSlider').focus()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="btn-text">Anpassen</span></button></li>
+    </ul>
+    <div class="alarm-volume">
+      <label for="alarmToneSelect">Alarmton</label>
+      <select id="alarmToneSelect" onchange="saveAlarmTone()" disabled>
+        <option value="standard">Standard-Alarm</option>
+        <option value="sirene">Sirene</option>
+        <option value="martinshorn">Martinshorn</option>
+      </select>
+      <button class="btn-ghost" id="btnAlarmTonePreview" onclick="previewAlarmVolume()" disabled><svg class="i" aria-hidden="true" focusable="false"><use href="#i-player-play"/></svg><span class="btn-text">Ton anhören</span></button>
+      <p class="alarm-note">Der gewählte Ton wird für den nativen Einsatzalarm verwendet.</p>
+      <label for="alarmVolumeSlider">Alarmlautstärke: <span id="alarmVolumeLabel">80 %</span></label>
+      <input type="range" id="alarmVolumeSlider" min="0" max="100" step="10" value="80" oninput="updateAlarmVolumeLabel()" onchange="saveAlarmVolume()">
+      <button class="btn-ghost" id="btnAlarmPreview" onclick="previewAlarmVolume()" disabled><svg class="i" aria-hidden="true" focusable="false"><use href="#i-player-play"/></svg><span class="btn-text">Vorschau</span></button>
+      <p class="alarm-note">Die Alarmlautstärke wird während des Alarms auf diesen Wert gesetzt und danach zurückgestellt.</p>
+    </div>
+    <div class="alarm-actions">
+      <button class="btn-primary" id="btnAlarmTest" onclick="playAlarmTest()" disabled><svg class="i" aria-hidden="true" focusable="false"><use href="#i-player-play"/></svg><span class="btn-text">Testalarm lokal</span></button>
+      <button class="btn-ghost" id="btnAlarmServerTest" onclick="sendServerTestAlarm()" disabled><svg class="i" aria-hidden="true" focusable="false"><use href="#i-broadcast"/></svg><span class="btn-text">Testalarm über Server</span></button>
+    </div>
+    <p class="alarm-note">Übungsalarme kommen als normale Benachrichtigung ohne Sirene.</p>
+    <p id="alarmUnsupported" style="display:none;font-size:.82rem;color:var(--muted);margin-top:10px;">Diese Funktion wird erst ab Android 8 unterstützt.</p>
+  </div>
+  </section>
+
+  <section class="tab-panel" role="tabpanel" id="panel-geraet" aria-labelledby="tab-geraet" tabindex="0" hidden>
+  <div class="card">
+    <div class="card-label"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-device-mobile"/></svg> Dieses Gerät</div>
+    <div id="deviceVersion">Version wird geladen…</div>
+    <div id="deviceProperties">Geräteeigenschaften werden geladen…</div>
+  </div>
+  <div class="card">
+    <div class="card-label"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-puzzle"/></svg> App-Version</div>
+    <div class="version-row">
+      <span class="version-label">Installiert</span>
+      <span class="version-value" id="installedVersion">–</span>
+    </div>
+    <div class="version-row">
+      <span class="version-label">Verfügbar</span>
+      <span class="version-value" id="availableVersion">Prüfe…</span>
+    </div>
+    <div class="version-row">
+      <label class="version-label" for="updateChannel">Kanal</label>
+      <select class="update-channel-select" id="updateChannel" onchange="setUpdateChannel(this.value)">
+        <option value="stable">Stable</option>
+        <option value="prerelease">Prerelease (Beta)</option>
+      </select>
+    </div>
+    <label class="toggle-row"><span>Geräteinfo an Admin melden<br><small style="color:var(--faint);">App-Version und Login-Status in der Geräteverwaltung</small></span><span class="toggle"><input type="checkbox" id="deviceStatusReportingToggle" onchange="setDeviceStatusReportingEnabled(this.checked)"><span class="toggle-slider"></span></span></label>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-ghost" style="flex:1;min-width:150px;" id="btnCheckUpdate" onclick="manualUpdateCheck()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span class="btn-text">Auf Update prüfen</span></button>
+    </div>
+    <div id="updateBtnRow" style="margin-top:10px;display:none;">
+      <button class="btn-primary" style="width:100%;" onclick="downloadApk()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-download"/></svg><span class="btn-text">Update herunterladen</span></button>
+    </div>
+  </div>
+
+  <div class="card" id="autoUpdateCard" style="display:none;">
+    <div class="card-label"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg> Auto-Update</div>
+    <div class="version-row">
+      <span class="version-label">Letzter Check</span>
+      <span class="version-value" id="autoUpdateChecked">Noch nicht geprüft</span>
+    </div>
+    <div class="version-row">
+      <span class="version-label">Release</span>
+      <span class="version-value" id="autoUpdateRelease">–</span>
+    </div>
+    <div class="version-row">
+      <span class="version-label">Download</span>
+      <span class="version-value" id="autoUpdateDownload">–</span>
+    </div>
+    <div class="version-row">
+      <span class="version-label">Installation</span>
+      <span class="version-value" id="autoUpdateInstall">–</span>
+    </div>
+    <div id="autoUpdatePermission" style="display:none;margin-top:10px;">
+      <p>Für automatische Updates bitte „Unbekannte Apps installieren“ für Einsatzcockpit erlauben.</p>
+      <button class="btn-primary" onclick="openAutoUpdateInstallSettings()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="btn-text">Installation erlauben</span></button>
+    </div>
+    <p id="autoUpdateError" style="display:none;font-size:.82rem;color:var(--red);margin-top:10px;"></p>
+  </div>
+
+  <div class="card" id="gatewayCard" style="display:none;">
+    <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
+      <span><svg class="i" aria-hidden="true" focusable="false"><use href="#i-broadcast"/></svg> SMS-Gateway</span>
+      <span class="badge-soft" id="gatewayStatusBadge">Prüfe…</span>
+    </div>
+    <p style="font-size:.85rem;color:var(--muted);line-height:1.5;">
+      Dieses Gerät ist als SMS-Gateway eingerichtet und sendet/empfängt im Hintergrund SMS.
+    </p>
+    <div style="margin-top:10px;">
+      <button class="btn-primary" style="width:100%;" onclick="window.location.href='gateway.html'"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-broadcast"/></svg><span class="btn-text">Zum SMS-Gateway-Status</span></button>
+    </div>
+  </div>
+  </section>
+
+  <section class="tab-panel" role="tabpanel" id="panel-offline" aria-labelledby="tab-offline" tabindex="0" hidden>
+  <div class="card" id="offlineCacheCard">
+    <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
+      <span><svg class="i" aria-hidden="true" focusable="false"><use href="#i-database"/></svg> Offline-Datenstand</span>
+      <span class="badge-soft" id="cacheStatusBadge">Prüfe…</span>
+    </div>
+    <div class="cache-summary">
+      <div class="cache-item">
+        <div class="cache-item__name">Kontakte</div>
+        <div class="cache-item__count" id="contactsCacheCount">–/–</div>
+        <div class="cache-item__detail" id="contactsCacheDetail">Lokaler Datenbestand wird geprüft</div>
+      </div>
+      <div class="cache-item">
+        <div class="cache-item__name">Objekte</div>
+        <div class="cache-item__count" id="objectsCacheCount">–/–</div>
+        <div class="cache-item__detail" id="objectsCacheDetail">Lokaler Datenbestand wird geprüft</div>
+      </div>
+    </div>
+    <div class="cache-activity">
+      <div class="cache-activity__current" id="cacheCurrentActivity">Warte auf den nächsten Abgleich …</div>
+      <ul class="cache-log" id="cacheLog"><li><span></span><span>Noch keine Cache-Aktivität aufgezeichnet</span></li></ul>
+    </div>
+    <label class="toggle-row"><span>Objekte automatisch offline halten</span><span class="toggle"><input type="checkbox" id="objectSyncToggle" onchange="setObjectSyncEnabled(this.checked)"><span class="toggle-slider"></span></span></label>
+    <div style="margin-top:10px;"><button class="btn-ghost" style="width:100%;" id="btnClearObjectCache" onclick="clearObjectCache()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-trash"/></svg><span class="btn-text">Objekt-Cache löschen</span></button></div>
+    <div style="margin-top:12px;"><button class="btn-ghost" style="width:100%;" id="btnRefreshOfflineCache" onclick="refreshOfflineCache()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span class="btn-text">Offline-Daten jetzt aktualisieren</span></button></div>
+  </div>
+  </section>
+
+  <section class="tab-panel" role="tabpanel" id="panel-diagnose" aria-labelledby="tab-diagnose" tabindex="0" hidden>
+  <div class="card">
+    <div class="card-label"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-file-text"/></svg> Gerätebericht</div>
+    <p id="diagnoseLastSent" aria-live="polite">Zuletzt an Zentrale gesendet: noch nie</p>
+    <button type="button" class="btn-primary" id="btnSendDiagnose" onclick="sendDiagnoseReport()" style="margin-top:12px;">Jetzt senden</button>
+    <p class="alarm-note">Einstellungen werden nur in der App geändert. In der Zentrale sind sie einsehbar; Fehler werden dorthin gemeldet.</p>
+    <p id="diagnoseSendStatus" class="alarm-note" role="status"></p>
+  </div>
+  <div class="card" id="standortCard">
+    <div class="card-label"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-file-text"/></svg> Standortmeldung</div>
+    <p id="standortStatus" aria-live="polite">Standortmeldung: wird geladen</p>
+    <p id="standortHinweis" class="alarm-note"></p>
+    <button type="button" class="btn-primary" id="btnSendStandort" onclick="sendStandortJetzt()" style="margin-top:12px;">Standort jetzt melden</button>
+    <p class="alarm-note">Registrierte Einheitengeräte melden ihren Standort auch ohne Einsatz mindestens alle 24 Stunden an die Zentrale (Android entscheidet über den genauen Zeitpunkt).</p>
+  </div>
+  <div class="card" id="nativeLogCard">
+    <div class="card-label"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-file-text"/></svg> Diagnoseprotokoll</div>
+    <p style="font-size:13px;color:var(--muted);">Letzte native Ereignisse (Alarm, Push, Live-Status, Updates). Keine Zugangsdaten.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-ghost" onclick="updateNativeLog()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span class="btn-text">Aktualisieren</span></button>
+      <button class="btn-ghost" onclick="shareNativeLog()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-share"/></svg><span class="btn-text">Teilen</span></button>
+      <button class="btn-ghost" onclick="clearNativeLog()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-trash"/></svg><span class="btn-text">Löschen</span></button>
+    </div>
+    <pre id="nativeLogText" style="max-height:240px;overflow:auto;font-family:monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;color:var(--text);">Noch keine Ereignisse geladen.</pre>
+  </div>
+  </section>
+
+  <!-- Zurueck -->
+  <button class="btn-ghost" onclick="goBack()"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-arrow-left"/></svg><span class="btn-text">Zurück</span></button>
+
+  <div id="toast"></div>
+
+<script>
+// Tabs only change panel visibility; native settings continue to use the same DOM.
+(() => {
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+  const storageKey = 'ec_about_tab';
+  const valid = (key) => tabs.some(tab => tab.id === 'tab-' + key);
+  function selectTab(key, focus = false) {
+    if (!valid(key)) return;
+    tabs.forEach(tab => {
+      const selected = tab.id === 'tab-' + key;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focus) {
+        tab.focus({ preventScroll:true });
+        tab.scrollIntoView({ block:'nearest', inline:'nearest' });
+      }
+    });
+    panels.forEach(panel => { panel.hidden = panel.id !== 'panel-' + key; });
+    try { localStorage.setItem(storageKey, key); } catch (_) {}
+    try { history.replaceState(null, '', '#' + key); } catch (_) {}
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectTab(tab.id.slice(4)));
+    tab.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = tabs.length - 1;
+      if (next === undefined) return;
+      event.preventDefault();
+      selectTab(tabs[next].id.slice(4), true);
+    });
+  });
+  let initial = location.hash.slice(1);
+  if (!valid(initial)) {
+    try { initial = localStorage.getItem(storageKey); } catch (_) {}
+  }
+  selectTab(valid(initial) ? initial : 'alarm');
+  window.addEventListener('hashchange', () => {
+    const key = location.hash.slice(1);
+    if (valid(key)) selectTab(key);
+  });
+
+  // The hint includes push readiness; the badge can already be "on" without it.
+  const hint = document.getElementById('alarmSetupHint');
+  const alarmTab = document.getElementById('tab-alarm');
+  const dot = document.getElementById('alarmTabDot');
+  function updateSetupIndicator() {
+    const incomplete = hint.style.display !== 'none';
+    dot.hidden = !incomplete;
+    alarmTab.setAttribute('aria-label', incomplete ? 'Alarm, Einrichtung unvollständig' : 'Alarm');
+  }
+  new MutationObserver(updateSetupIndicator).observe(hint, { attributes:true, attributeFilter:['style'] });
+  updateSetupIndicator();
+})();
+
+async function updateDeviceInfo() {
+  if (!SmsGateway?.getDeviceInfo) return;
+  try {
+    const info = await SmsGateway.getDeviceInfo();
+    const app = info.app || {};
+    document.getElementById('deviceVersion').textContent = `${app.version_name || '–'} (${app.version_code ?? '–'}) · ${app.build_variant || '–'}`;
+    const labels = {
+      geraet: { hersteller:'Hersteller', marke:'Marke', modell:'Modell', geraetename:'Gerät', klasse:'Klasse', foldable:'Faltbar', abi:'ABI', ram_mb_total:'RAM gesamt (MB)', ram_mb_free:'RAM frei (MB)', speicher_mb_free:'Speicher frei (MB)', akku_prozent:'Akku (%)', laedt:'Lädt', akkusparer:'Akkusparer', sim_anzahl:'SIM-Anzahl', nfc:'NFC', kamera:'Kamera', telefonie:'Telefonie' },
+      android: { version:'Android', sdk_int:'SDK', sicherheitspatch:'Sicherheitspatch', build_id:'Build', oberflaeche:'Oberfläche' },
+      display: { breite_px:'Breite (px)', hoehe_px:'Höhe (px)', dpi:'DPI', dichte_bucket:'Dichte', breite_dp:'Breite (dp)', hz:'Bildrate (Hz)', ausrichtung:'Ausrichtung', schrift_skala:'Schriftgröße', anzeige_skala:'Anzeigegröße' },
+      webview: { paket:'WebView', version:'WebView-Version' },
+      locale: { sprache:'Sprache', zeitzone:'Zeitzone', uhr_abweichung_s:'Uhrabweichung (s)' }
+    };
+    const properties = document.getElementById('deviceProperties');
+    properties.replaceChildren();
+    for (const [section, fields] of Object.entries(labels)) {
+      for (const [key, label] of Object.entries(fields)) {
+        const value = info[section]?.[key];
+        if (value === undefined) continue;
+        const row = document.createElement('div');
+        row.textContent = `${label}: ${value === null ? 'unbekannt' : typeof value === 'boolean' ? (value ? 'ja' : 'nein') : value}`;
+        properties.appendChild(row);
+      }
+    }
+    document.getElementById('diagnoseLastSent').textContent = 'Zuletzt an Zentrale gesendet: ' +
+      (info.last_sent_at ? new Date(info.last_sent_at).toLocaleString('de-AT') : 'noch nie');
+    standortAnzeigen(info.standort);
+  } catch (_) {
+    document.getElementById('deviceProperties').textContent = 'Geräteinformationen derzeit nicht verfügbar.';
+  }
+}
+
+function standortAnzeigen(s) {
+  const status = document.getElementById('standortStatus');
+  const hinweis = document.getElementById('standortHinweis');
+  if (!s) { status.textContent = 'Standortmeldung: nicht verfügbar'; return; }
+  const zeit = (v) => v ? new Date(v).toLocaleString('de-AT') : 'noch nie';
+  status.textContent = 'Letzte Messung: ' + zeit(s.letzte_messung_at) + ' · Zuletzt gemeldet: ' + zeit(s.letzte_meldung_at);
+  const texte = {
+    permission_denied: 'Standortberechtigung fehlt. Bitte in den Android-Einstellungen erlauben.',
+    location_disabled: 'Die Ortung ist am Gerät ausgeschaltet.',
+    no_fix: 'Es konnte keine Position bestimmt werden.',
+    stale_fix: 'Nur eine veraltete Position verfügbar.',
+    mock_location: 'Simulierte Position wird nicht gemeldet.',
+  };
+  let text = texte[s.status] || '';
+  if (!s.berechtigung) text = texte.permission_denied;
+  else if (!s.hintergrund) text = (text ? text + ' ' : '') + 'Für Meldungen im Hintergrund bitte „Immer zulassen“ für den Standort wählen.';
+  if (s.fehler) text = (text ? text + ' ' : '') + 'Letzter Fehler: ' + s.fehler;
+  hinweis.textContent = text;
+}
+
+async function sendStandortJetzt() {
+  const hinweis = document.getElementById('standortHinweis');
+  try {
+    const SmsGateway = window.Capacitor?.Plugins?.SmsGateway;
+    if (!SmsGateway?.sendLocationNow) throw new Error('Bridge unavailable');
+    const r = await SmsGateway.sendLocationNow();
+    hinweis.textContent = r.queued ? 'Standortmeldung wird gesendet.' : 'Zuletzt vor wenigen Minuten angefordert.';
+  } catch (_) {
+    hinweis.textContent = 'Standortmeldung konnte nicht angefordert werden.';
+  }
+}
+
+async function sendDiagnoseReport() {
+  const button = document.getElementById('btnSendDiagnose');
+  const status = document.getElementById('diagnoseSendStatus');
+  button.disabled = true;
+  try {
+    if (!SmsGateway?.sendDiagnoseReport) throw new Error('Bridge unavailable');
+    await SmsGateway.sendDiagnoseReport();
+    status.textContent = 'Bericht zum Versand vorgemerkt. Bei fehlender Verbindung wird er später gesendet.';
+    await updateDeviceInfo();
+  } catch (_) {
+    status.textContent = 'Bericht konnte nicht vorgemerkt werden. Bitte erneut versuchen.';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// ── Capacitor-Bridge ──────────────────────────────────────────────────────────
+function waitForCapacitor(cb) {
+  if (window.Capacitor && window.Capacitor.Plugins) {
+    cb();
+  } else {
+    document.addEventListener('deviceready', cb, { once: true });
+    setTimeout(() => { if (window.Capacitor) cb(); }, 500);
+  }
+}
+
+let SmsGateway;
+let AlarmChannel;
+let Preferences;
+let alarmDndSetupPending = false;
+let alarmPushReady = false;
+
+waitForCapacitor(async () => {
+  updateNativeLog();
+  Preferences = window.Capacitor.Plugins.Preferences;
+  SmsGateway = window.Capacitor.Plugins.SmsGateway;
+  AlarmChannel = window.Capacitor.Plugins.AlarmChannel;
+  await updateDeviceInfo();
+  setInterval(updateDeviceInfo, 15000);
+
+  // Gateway-Karte nur zeigen wenn dieses Geraet als Gateway konfiguriert ist
+  // (Einheit-Geraet oder kombiniertes Geraet mit Gateway-Rolle).
+  const { value: gwUrl }   = await Preferences.get({ key: 'el_gateway_url' });
+  const { value: gwToken } = await Preferences.get({ key: 'el_gateway_token' });
+  if (gwUrl && gwToken) {
+    document.getElementById('gatewayCard').style.display = '';
+    updateGatewayStatus();
+  }
+
+  await initializeUpdateChannelToggle();
+  await updateDeviceStatusReportingSetting();
+  checkForUpdate();
+  updateAlarmStatus();
+  updateOfflineCacheStatus();
+  setInterval(updateOfflineCacheStatus, 5000);
+});
+
+const DEVICE_STATUS_REPORTING_KEY = 'ec_device_status_reporting_enabled';
+
+async function updateDeviceStatusReportingSetting() {
+  const toggle = document.getElementById('deviceStatusReportingToggle');
+  if (!toggle || !Preferences) return;
+  try {
+    const { value } = await Preferences.get({ key: DEVICE_STATUS_REPORTING_KEY });
+    toggle.checked = value !== 'false';
+  } catch (_) {
+    toggle.checked = true;
+  }
+}
+
+async function setDeviceStatusReportingEnabled(enabled) {
+  const toggle = document.getElementById('deviceStatusReportingToggle');
+  if (!Preferences) return;
+  try {
+    await Preferences.set({
+      key: DEVICE_STATUS_REPORTING_KEY,
+      value: enabled ? 'true' : 'false',
+    });
+    toast(enabled ? 'Geräteinfo wird an die Administration gemeldet.' : 'Meldung der Geräteinfo wurde deaktiviert.');
+  } catch (_) {
+    if (toggle) toggle.checked = !enabled;
+    toast('Einstellung zur Geräteinfo konnte nicht gespeichert werden.');
+  }
+}
+
+function formatCacheTime(value) {
+  if (!value) return 'Noch nicht synchronisiert';
+  try { return 'Stand ' + new Date(Number(value)).toLocaleString('de-AT', { dateStyle: 'short', timeStyle: 'short' }); }
+  catch (_) { return 'Zeitpunkt unbekannt'; }
+}
+
+function escapeHtml(value) {
+  const node = document.createElement('span');
+  node.textContent = value || '';
+  return node.innerHTML;
+}
+
+async function updateNativeLog() {
+  const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
+  const output = document.getElementById('nativeLogText');
+  if (!plugin?.getNativeLog) {
+    output.textContent = 'Diagnoseprotokoll ist nur in der Android-App verfügbar.';
+    return;
+  }
+  try {
+    const { text } = await plugin.getNativeLog();
+    output.textContent = text ? text.replace(/\n$/, '').split('\n').slice(-150).join('\n') : 'Noch keine nativen Ereignisse.';
+  } catch (error) {
+    toast('Diagnoseprotokoll konnte nicht geladen werden.');
+  }
+}
+
+async function shareNativeLog() {
+  const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
+  if (!plugin?.shareNativeLog) return toast('Teilen ist nur in der Android-App verfügbar.');
+  try {
+    await plugin.shareNativeLog();
+  } catch (error) {
+    toast(error?.message || 'Diagnoseprotokoll konnte nicht geteilt werden.');
+  }
+}
+
+async function clearNativeLog() {
+  const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
+  if (!plugin?.clearNativeLog) return toast('Löschen ist nur in der Android-App verfügbar.');
+  if (!confirm('Diagnoseprotokoll löschen?')) return;
+  try {
+    await plugin.clearNativeLog();
+    await updateNativeLog();
+    toast('Diagnoseprotokoll wurde gelöscht.');
+  } catch (error) {
+    toast('Diagnoseprotokoll konnte nicht gelöscht werden.');
+  }
+}
+
+async function updateOfflineCacheStatus() {
+  const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
+  if (!plugin?.getOfflineCacheStatus) return;
+  const badge = document.getElementById('cacheStatusBadge');
+  try {
+    const status = await plugin.getOfflineCacheStatus();
+    const contactCached = Number(status.contactsCached || 0);
+    const contactTotal = Number(status.contactsTotal || 0);
+    const objectCached = Number(status.objectsCached || 0);
+    const objectTotal = Number(status.objectsTotal || 0);
+    const objectSyncEnabled = status.objectSyncEnabled === true;
+    document.getElementById('contactsCacheCount').textContent = contactCached + '/' + contactTotal;
+    document.getElementById('objectsCacheCount').textContent = objectCached + '/' + objectTotal;
+    document.getElementById('contactsCacheDetail').textContent = status.contactsError || formatCacheTime(status.contactsUpdatedAtMs);
+    const objectHasSynced = !!status.objectsUpdatedAtMs;
+    document.getElementById('objectsCacheDetail').textContent = objectHasSynced
+      ? formatCacheTime(status.objectsUpdatedAtMs)
+      : (status.objectLastActivity || (objectSyncEnabled ? 'Objektliste wird abgerufen' : 'Objekt-Sync ist deaktiviert'));
+    document.getElementById('objectSyncToggle').checked = objectSyncEnabled;
+    document.getElementById('objectSyncToggle').disabled = status.objectCacheClearing === true;
+    document.getElementById('cacheCurrentActivity').textContent = status.objectActivity || 'Offline-Datenstand wird im Hintergrund aktuell gehalten.';
+    const contactsReady = contactCached === contactTotal && contactTotal > 0;
+    const objectsReady = !objectSyncEnabled || (objectHasSynced && objectCached === objectTotal);
+    const ready = contactsReady && objectsReady;
+    badge.textContent = ready ? 'Offline bereit' : (objectSyncEnabled && !objectHasSynced ? 'Objektliste fehlt' : 'Wird aktualisiert');
+    badge.className = 'badge-soft ' + (ready ? 'on' : '');
+    const activities = Array.isArray(status.activities) ? status.activities : [];
+    const log = document.getElementById('cacheLog');
+    log.innerHTML = activities.length
+      ? activities.map(entry => '<li><time>' + new Date(Number(entry.at)).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }) + '</time><span>' + escapeHtml(entry.text) + '</span></li>').join('')
+      : '<li><span></span><span>Noch keine Cache-Aktivität aufgezeichnet</span></li>';
+  } catch (_) {
+    badge.textContent = 'Nicht verfügbar';
+    badge.className = 'badge-soft off';
+  }
+}
+
+async function refreshOfflineCache() {
+  const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
+  const button = document.getElementById('btnRefreshOfflineCache');
+  if (!plugin?.refreshOfflineCache || button.disabled) return;
+  button.disabled = true;
+  const label = button.querySelector('.btn-text');
+  const previous = label.textContent;
+  label.textContent = 'Abgleich wird gestartet …';
+  try {
+    await plugin.refreshOfflineCache();
+    await updateOfflineCacheStatus();
+    toast('Offline-Abgleich wurde gestartet.');
+  } catch (_) {
+    toast('Offline-Abgleich konnte nicht gestartet werden.');
+  } finally {
+    button.disabled = false;
+    label.textContent = previous;
+  }
+}
+
+async function setObjectSyncEnabled(enabled) {
+  const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
+  if (!plugin?.setObjectSyncEnabled) return;
+  try {
+    await plugin.setObjectSyncEnabled({ enabled });
+    toast(enabled ? 'Objekt-Sync wurde aktiviert.' : 'Objekt-Sync wurde deaktiviert.');
+    await updateOfflineCacheStatus();
+  } catch (_) {
+    document.getElementById('objectSyncToggle').checked = !enabled;
+    toast('Objekt-Sync konnte nicht umgestellt werden.');
+  }
+}
+
+async function clearObjectCache() {
+  const plugin = window.Capacitor?.Plugins?.DeviceKeepalive;
+  const button = document.getElementById('btnClearObjectCache');
+  if (!plugin?.clearObjectCache || button.disabled) return;
+  if (!window.confirm('Den lokalen Objekt-Cache löschen? Kontakte und Anmeldung bleiben erhalten.')) return;
+  button.disabled = true;
+  try {
+    await plugin.clearObjectCache();
+    toast('Objekt-Cache wird gelöscht.');
+    await updateOfflineCacheStatus();
+  } catch (_) {
+    toast('Objekt-Cache konnte nicht gelöscht werden.');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// ── Alarmkanal ────────────────────────────────────────────────────────────────
+let pushServerTestRunning = false;
+
+async function updateAlarmStatus() {
+  await updatePushStatusBadge();
+  if (!AlarmChannel?.getStatus) return;
+  try {
+    const status = await AlarmChannel.getStatus();
+    const card = document.getElementById('alarmCard');
+    const badge = document.getElementById('alarmStatusBadge');
+    const enabled = document.getElementById('alarmEnabledToggle');
+    const dnd = document.getElementById('alarmDndToggle');
+    // Normale Push-Meldungen haengen nicht am Alarmton-Schalter.
+    document.getElementById('btnPushServerTest').disabled =
+      !AlarmChannel?.sendServerTestPush || pushServerTestRunning;
+    if (!status.supported) {
+      // Der Push-Abschnitt bleibt sichtbar, nur der native Alarm fehlt.
+      card.querySelectorAll(':scope > .toggle-row, :scope > .alarm-checklist, :scope > .alarm-volume, :scope > .alarm-actions').forEach((el) => el.style.display = 'none');
+      document.getElementById('alarmUnsupported').style.display = '';
+      badge.textContent = 'Nicht unterstützt';
+      badge.className = 'badge-soft off';
+      return;
+    }
+    enabled.checked = status.enabled;
+    dnd.checked = status.nativeChannelDndBypass || status.dndBypass;
+    dnd.disabled = !status.enabled;
+    ['btnAlarmTest', 'btnAlarmServerTest', 'btnAlarmPreview', 'btnAlarmTonePreview', 'alarmToneSelect'].forEach((id) => {
+      document.getElementById(id).disabled = !status.enabled;
+    });
+    const { value } = await Preferences.get({ key: 'el_alarm_volume_percent' });
+    const { value: tone } = await Preferences.get({ key: 'el_alarm_tone' });
+    document.getElementById('alarmToneSelect').value = ['standard', 'sirene', 'martinshorn'].includes(tone) ? tone : 'standard';
+    const volumeSetting = value ?? '80';
+    document.getElementById('alarmVolumeSlider').value = volumeSetting;
+    updateAlarmVolumeLabel();
+    const volumeReady = status.alarmVolume > 0 || volumeSetting !== '0';
+    setAlarmCheck('alarmNotificationsRow', status.notificationsGranted);
+    setAlarmCheck('alarmFullScreenRow', status.fullScreenIntentAllowed);
+    setAlarmCheck('alarmBatteryRow', status.batteryOptimizationIgnored);
+    setAlarmCheck('alarmDndRow', status.nativeChannelDndBypass || status.dndBypass);
+    setAlarmCheck('alarmVolumeRow', volumeReady);
+    document.getElementById('alarmSystemVolume').textContent = status.alarmVolume + ' %';
+    const ready = alarmPushReady && status.enabled && status.notificationsGranted && status.fullScreenIntentAllowed
+      && status.batteryOptimizationIgnored && volumeReady;
+    document.getElementById('alarmSetupHint').style.display = ready ? 'none' : '';
+    if (!status.notificationsGranted) {
+      badge.textContent = 'Benachrichtigungen nicht erlaubt';
+      badge.className = 'badge-soft off';
+    } else {
+      badge.textContent = status.enabled ? (status.dndBypass ? 'Aktiv · DND übergangen' : 'Aktiv') : 'Aus';
+      badge.className = 'badge-soft ' + (status.enabled ? 'on' : 'off');
+    }
+    await Preferences?.set({ key: 'el_alarm_override_silent', value: status.enabled ? '1' : '0' });
+  } catch (_) {
+    document.getElementById('alarmStatusBadge').textContent = 'unbekannt';
+  }
+}
+
+async function setAlarmEnabled(enabled) {
+  try {
+    if (enabled) {
+      const PushNotifications = window.Capacitor?.Plugins?.PushNotifications;
+      const perm = await PushNotifications?.requestPermissions();
+      if (!perm || perm.receive !== 'granted') {
+        toast('Benachrichtigungen müssen zuerst erlaubt werden.');
+        await updateAlarmStatus();
+        return;
+      }
+    }
+    await AlarmChannel.setEnabled({ enabled });
+    await updateAlarmStatus();
+    toast(enabled ? 'Alarmton bei Lautlos aktiviert.' : 'Alarmton bei Lautlos deaktiviert.');
+  } catch (_) {
+    toast('Alarmton konnte nicht geändert werden.');
+    await updateAlarmStatus();
+  }
+}
+
+async function configureAlarmDnd(enabled) {
+  try {
+    const status = await AlarmChannel.getStatus();
+    if (!status.enabled) { await updateAlarmStatus(); return; }
+    if (enabled && !status.dndPermission) {
+      alarmDndSetupPending = true;
+      toast('Bitte Einsatzcockpit den Zugriff auf "Nicht stören" erlauben.');
+      await AlarmChannel.openDndAccessSettings();
+    } else {
+      toast('Bitte "Nicht stören übergehen" in den Kanaleinstellungen festlegen.');
+      await AlarmChannel.openChannelSettings();
+    }
+  } catch (_) {
+    toast('Systemeinstellungen konnten nicht geöffnet werden.');
+  } finally {
+    await updateAlarmStatus();
+  }
+}
+
+async function playAlarmTest() {
+  try {
+    const result = await AlarmChannel.playLocalAlarm();
+    toast(result.started ? 'Testalarm wurde gestartet.' : 'Testalarm konnte nicht gestartet werden.');
+  } catch (_) {
+    toast('Testalarm konnte nicht abgespielt werden.');
+  }
+}
+
+function setAlarmCheck(id, ready) {
+  const row = document.getElementById(id);
+  row.classList.toggle('ready', !!ready);
+  row.querySelector('button').hidden = !!ready;
+}
+
+async function requestAlarmNotifications() {
+  try {
+    const perm = await window.Capacitor?.Plugins?.PushNotifications?.requestPermissions();
+    if (perm?.receive !== 'granted') toast('Benachrichtigungen müssen zuerst erlaubt werden.');
+  } catch (_) {
+    toast('Berechtigung konnte nicht angefragt werden.');
+  } finally {
+    await updateAlarmStatus();
+  }
+}
+
+async function openAlarmSetting(setting) {
+  try {
+    if (setting === 'battery') await SmsGateway.requestBatteryOptimization();
+    else await AlarmChannel.openFullScreenIntentSettings();
+  } catch (_) {
+    toast('Systemeinstellungen konnten nicht geöffnet werden.');
+  } finally {
+    await updateAlarmStatus();
+  }
+}
+
+function updateAlarmVolumeLabel() {
+  const percent = Number(document.getElementById('alarmVolumeSlider').value);
+  document.getElementById('alarmVolumeLabel').textContent = percent === 0
+    ? 'Systemlautstärke unverändert' : percent + ' %';
+}
+
+async function saveAlarmVolume() {
+  try {
+    await Preferences.set({ key: 'el_alarm_volume_percent', value: document.getElementById('alarmVolumeSlider').value });
+  } catch (_) {
+    toast('Alarmlautstärke konnte nicht gespeichert werden.');
+  }
+  await updateAlarmStatus();
+}
+
+async function saveAlarmTone() {
+  try {
+    await Preferences.set({ key: 'el_alarm_tone', value: document.getElementById('alarmToneSelect').value });
+  } catch (_) {
+    toast('Alarmton konnte nicht gespeichert werden.');
+  }
+  await updateAlarmStatus();
+}
+
+async function previewAlarmVolume() {
+  try {
+    const percent = Number(document.getElementById('alarmVolumeSlider').value);
+    const tone = document.getElementById('alarmToneSelect').value;
+    const result = await AlarmChannel.previewVolume({ percent, tone });
+    if (!result.started) toast('Vorschau konnte nicht gestartet werden.');
+  } catch (_) {
+    toast('Vorschau konnte nicht gestartet werden.');
+  }
+}
+
+async function sendServerTestAlarm() {
+  try {
+    const result = await AlarmChannel.sendServerTestAlarm();
+    toast(result.ok
+      ? (result.nativeAlarm ? 'Testalarm gesendet – kommt in wenigen Sekunden'
+        : 'Gesendet, aber der Server kennt den Einsatzalarm dieses Geräts nicht – kam als normale Meldung.')
+      : (result.error || 'Server-Testalarm fehlgeschlagen.'), 5000);
+    await updatePushStatusBadge();
+  } catch (error) {
+    toast(error?.message || 'Server-Testalarm fehlgeschlagen.');
+  }
+}
+
+async function sendServerTestPush() {
+  const button = document.getElementById('btnPushServerTest');
+  if (button.disabled || !AlarmChannel?.sendServerTestPush) return;
+  pushServerTestRunning = true;
+  button.disabled = true;
+  try {
+    const result = await AlarmChannel.sendServerTestPush();
+    toast(result.ok ? 'Test-Push gesendet – kommt in wenigen Sekunden'
+      : (result.error || 'Server-Test-Push fehlgeschlagen.'), 5000);
+  } catch (error) {
+    toast(error?.message || 'Server-Test-Push fehlgeschlagen.');
+  } finally {
+    pushServerTestRunning = false;
+    await updateAlarmStatus();
+  }
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible' || !AlarmChannel) return;
+  try {
+    if (alarmDndSetupPending) {
+      alarmDndSetupPending = false;
+      const status = await AlarmChannel.getStatus();
+      if (status.dndPermission && !status.dndBypass) {
+        toast('Bitte jetzt "Nicht stören übergehen" aktivieren.');
+        await AlarmChannel.openChannelSettings();
+      }
+    }
+  } catch (_) {
+    toast('Systemeinstellungen konnten nicht geöffnet werden.');
+  } finally {
+    await updateAlarmStatus();
+  }
+});
+
+// ── Push-Benachrichtigungen (FCM) ─────────────────────────────────────────────
+// Zeigt den lokalen OS-Berechtigungsstatus und bestaetigt die Registrierung beim
+// Server ueber das native DeviceKeepalive-Plugin. Der aktuelle Firebase-Token
+// wird dabei ohne Berechtigungsdialog und ohne neue Push-Registrierung gelesen.
+// Anders als im stillen Login-Flow darf der erste Token-Abruf hier auf langsamen
+// Geraeten bzw. Verbindungen ausreichend lange auf Google Play Services warten.
+const PUSH_TIMEOUT_MS = 30000;
+
+async function updatePushStatusBadge() {
+  const badge = document.getElementById('pushStatusBadge');
+  const setupHint = document.getElementById('pushSetupHint');
+  const deliveryWarning = document.getElementById('pushDeliveryWarning');
+  if (!badge) return;
+  setupHint.style.display = 'none';
+  deliveryWarning.style.display = 'none';
+  const PushNotifications = window.Capacitor?.Plugins?.PushNotifications;
+  if (!PushNotifications || !PushNotifications.checkPermissions) {
+    badge.textContent = 'unbekannt';
+    alarmPushReady = false;
+    setAlarmCheck('alarmPushRow', false);
+    return;
+  }
+  let ready = false;
+  try {
+    const perm = await PushNotifications.checkPermissions();
+    if (perm.receive === 'granted') {
+      const DeviceKeepalive = window.Capacitor?.Plugins?.DeviceKeepalive;
+      if (!DeviceKeepalive?.getPushToken || !DeviceKeepalive?.getPushStatus) {
+        throw new Error('Native Push-Statusprüfung ist nicht verfügbar.');
+      }
+      const { token } = await DeviceKeepalive.getPushToken();
+      const status = await DeviceKeepalive.getPushStatus({ token });
+      ready = status.registered === true && status.native_alarm !== false;
+      if (ready) {
+        badge.textContent = 'Eingerichtet';
+        deliveryWarning.style.display = status.last_delivery_success === false ? '' : 'none';
+      } else {
+        badge.textContent = 'Erlaubt, aber nicht eingerichtet';
+        setupHint.textContent = status.registered === true && status.native_alarm === false
+          ? 'Server kennt den Einsatzalarm dieses Geräts noch nicht – bitte Registrieren tippen.'
+          : 'Tippe auf „Registrieren“, um dieses Gerät beim Server einzurichten.';
+        setupHint.style.display = '';
+      }
+    } else {
+      badge.textContent = 'Nicht erlaubt';
+    }
+  } catch (_) {
+    badge.textContent = 'Status unbekannt';
+  }
+  alarmPushReady = ready;
+  setAlarmCheck('alarmPushRow', ready);
+}
+
+// Holt einen frischen FCM-Token - identisches Muster wie index.html::registerPushToken(),
+// hier dupliziert statt geteilt (siehe Konvention: jede lokale Seite in www/ ist
+// selbststaendig, kein gemeinsames Script-Include in diesem Projekt).
+async function fetchFcmToken() {
+  try {
+    const PushNotifications = window.Capacitor?.Plugins?.PushNotifications;
+    if (!PushNotifications) return null;
+    const perm = await PushNotifications.requestPermissions();
+    if (perm.receive !== 'granted') return null;
+
+    return await new Promise((resolve, reject) => {
+      let done = false;
+      let timeoutId;
+      const finish = (value) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timeoutId);
+        resolve(value);
+      };
+      const fail = (message) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timeoutId);
+        reject(new Error(message));
+      };
+      PushNotifications.addListener('registration', (reg) => finish(reg.value));
+      PushNotifications.addListener('registrationError', (err) => {
+        console.warn('[Push] Registrierung fehlgeschlagen:', err);
+        fail('Push-Registrierung fehlgeschlagen. Bitte erneut versuchen.');
+      });
+      timeoutId = setTimeout(() => {
+        fail('Keine Antwort von Google Play Services. Bitte Internetverbindung prüfen und erneut versuchen.');
+      }, PUSH_TIMEOUT_MS);
+      PushNotifications.register().catch((e) => {
+        console.warn('[Push] register() Fehler:', e);
+        fail('Push-Registrierung konnte nicht gestartet werden.');
+      });
+    });
+  } catch (e) {
+    console.warn('[Push] Registrierung fehlgeschlagen:', e);
+    throw e;
+  }
+}
+
+async function registerPushAndContinue() {
+  const btn = document.getElementById('btnRegisterPush');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  const label = btn.querySelector('.btn-text');
+  const prev = label.textContent;
+  label.textContent = '…';
+  try {
+    const token = await fetchFcmToken();
+    if (!token) {
+      toast('Registrierung fehlgeschlagen oder Berechtigung verweigert.');
+      return;
+    }
+    const DeviceKeepalive = window.Capacitor?.Plugins?.DeviceKeepalive;
+    if (!DeviceKeepalive?.registerFcmToken) {
+      throw new Error('Native Server-Registrierung ist nicht verfügbar.');
+    }
+    const result = await DeviceKeepalive.registerFcmToken({ token });
+    await updateAlarmStatus();
+    toast(result.nativeAlarm ? 'Push eingerichtet – Einsatzalarm aktiv.'
+      : 'Push registriert, aber der Server bestätigt den Einsatzalarm noch nicht.');
+  } catch (e) {
+    console.warn('[Push] Server-Registrierung fehlgeschlagen:', e);
+    toast('Registrierung fehlgeschlagen: ' + (e?.message || 'unbekannter Fehler') + ' — bitte erneut versuchen.');
+  } finally {
+    btn.disabled = false;
+    label.textContent = prev;
+  }
+}
+
+// ── Live-Verbindungsstatus des SMS-Gateways (identische Quelle wie gateway.html:
+// SmsGatewayService.isConnected im nativen Plugin, kein Netzwerk-Roundtrip). ──
+async function updateGatewayStatus() {
+  const badge = document.getElementById('gatewayStatusBadge');
+  if (!SmsGateway || !SmsGateway.getStatus) {
+    badge.textContent = 'unbekannt';
+    return;
+  }
+  try {
+    const { connected } = await SmsGateway.getStatus();
+    badge.textContent = connected ? 'Verbunden' : 'Getrennt';
+    badge.className = 'badge-soft ' + (connected ? 'on' : 'off');
+  } catch (_) {
+    badge.textContent = 'unbekannt';
+  }
+}
+
+function goBack() {
+  // Kommt der Nutzer von der Web-App (Board), zurueck dorthin navigieren;
+  // ansonsten (z.B. direkt aus dem Setup) zur Startseite der App.
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.replace('index.html');
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, ms = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+</script>
+<script src="js/update-check.js"></script>
+</body>
+</html>
