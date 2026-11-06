@@ -1,13 +1,19 @@
 # Intel-Mac als Build-Rechner
 
-Vorgesehen sind ein mit macOS 26 Tahoe kompatibler Intel-Mac und Xcode 26. Tahoe ist die letzte macOS-Hauptversion für Intel-Macs; für spätere SDK-/Xcode-Generationen muss ein Wechsel auf Apple Silicon eingeplant werden. Apple erläutert die Übergangsplanung in [Platforms State of the Union 2025](https://developer.apple.com/videos/play/wwdc2025/102/). Die [Kompatibilitätsliste für Tahoe](https://support.apple.com/en-euro/122867) nennt die unterstützten Modelle.
+Vorgesehen ist ein Intel-Mac mit macOS 15 Sequoia oder neuer und Xcode 26. Xcode 26 läuft bereits unter Sequoia; macOS 26 Tahoe ist nicht nötig und steht auch nicht für alle Intel-Macs zur Verfügung, etwa nicht für das MacBook Pro 13" (2020) mit zwei Thunderbolt-Ports. Die [Kompatibilitätsliste für Tahoe](https://support.apple.com/en-euro/122867) nennt die unterstützten Modelle. Tahoe ist die letzte macOS-Hauptversion für Intel-Macs; für spätere SDK-/Xcode-Generationen muss ein Wechsel auf Apple Silicon eingeplant werden. Apple erläutert die Übergangsplanung in [Platforms State of the Union 2025](https://developer.apple.com/videos/play/wwdc2025/102/).
 
 ## Einrichtung
 
-1. macOS 26 installieren und Xcode 26 aus dem App Store laden. Xcode einmal öffnen. Unter Xcode → Settings → Components eine iOS-Simulator-Runtime installieren. Unter Window → Devices and Simulators einen iPhone- und bei Bedarf iPad-Simulator anlegen.
-2. Homebrew nach [brew.sh](https://brew.sh) installieren und dessen Shell-Einrichtung abschließen. Das Skript installiert Homebrew nicht selbst.
-3. Repository auf dem Mac auschecken und `bash scripts/mac-setup.sh` ausführen. `sudo` kann für die Auswahl von Xcode, Lizenzbestätigung und First-Launch-Schritte erforderlich sein. Die Lizenz wird bei Bedarf interaktiv angezeigt. First Launch wird nur bei ausstehender Einrichtung ausgeführt.
-4. Das Skript installiert `node@22` und bei fehlendem `pod` CocoaPods über Homebrew. Es setzt Node 22 für diesen Aufruf in den PATH, führt `npm ci`, die Asset-Generierung, `npx cap sync ios` und `pod install` aus und baut den Simulator ohne Signierung. Wiederholte Aufrufe sind möglich.
+1. Xcode 26 nach `/Applications/Xcode.app` installieren (App Store oder Download von developer.apple.com) und einmal öffnen. Unter Xcode → Settings → Components eine iOS-Simulator-Runtime installieren. Unter Window → Devices and Simulators einen iPhone- und bei Bedarf iPad-Simulator anlegen.
+2. Repository auf dem Mac auschecken und `bash scripts/mac-setup.sh` ausführen. `sudo` kann für die Auswahl von Xcode, Lizenzbestätigung und First-Launch-Schritte erforderlich sein. Die Lizenz wird bei Bedarf interaktiv angezeigt. First Launch wird nur bei ausstehender Einrichtung ausgeführt.
+3. Homebrew wird nicht benötigt, weil es Intel-Macs nicht mehr vollständig unterstützt. Fehlen Node 22 oder `pod`, installiert `scripts/mac-env.sh` sie ohne `sudo` nach `~/.local` (abweichend per `EC_TOOLS_DIR`): Node 22 als offizielles Paket von nodejs.org und CocoaPods in einem portablen Ruby 3.4 aus dem Homebrew-Portable-Ruby-Projekt. Beide Downloads werden per SHA-256 geprüft. Das System-Ruby 2.6 ist für aktuelles CocoaPods zu alt.
+4. Das Skript führt anschließend `npm ci`, die Asset-Generierung, `npx cap sync ios` und `pod install` aus und baut den Simulator ohne Signierung. Wiederholte Aufrufe sind möglich.
+
+Für ein eigenes Terminal die Werkzeuge dauerhaft in den PATH aufnehmen, etwa in `~/.zprofile`:
+
+```bash
+export PATH="$HOME/.local/node/bin:$HOME/.local/ruby/bin:$PATH"
+```
 
 Bei abweichendem Xcode-Pfad erwartet das Setup entweder `/Applications/Xcode.app` oder `/Applications/Xcode_26*.app`. Es bevorzugt die höchste nummerierte Installation und prüft anschließend Version 26. Netzwerk wird für npm, CocoaPods und Simulator-Runtimes benötigt. `Podfile.lock` wird lokal erzeugt und nicht versioniert.
 
