@@ -11,10 +11,9 @@ case "${1:-}" in
   '') ;;
   *) echo "Aufruf: $0 [--ipad]" >&2; exit 1 ;;
 esac
-# node@22 ist bei Homebrew keg-only.
-if command -v brew >/dev/null 2>&1; then
-  export PATH="$(brew --prefix node@22)/bin:$PATH"
-fi
+# shellcheck source=scripts/mac-env.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mac-env.sh"
+ensure_node
 DERIVED_DATA=${DERIVED_DATA:-/tmp/einsatzcockpit-ios-derived}
 APP_PATH=${APP_PATH:-$DERIVED_DATA/Build/Products/Debug-iphonesimulator/App.app}
 if [[ ! -d "$APP_PATH" ]]; then
@@ -48,7 +47,8 @@ boot_and_run() {
   xcrun simctl bootstatus "$udid" -b
   xcrun simctl install "$udid" "$APP_PATH"
   xcrun simctl launch "$udid" cloud.einsatzleiter.app
-  open -a Simulator --args -CurrentDeviceUDID "$udid"
+  # Direkter Pfad, weil LaunchServices "Simulator" nach einem Xcode-Umzug oft nicht findet.
+  open "$(xcode-select -p)/Applications/Simulator.app" --args -CurrentDeviceUDID "$udid"
 }
 boot_and_run iPhone "${IPHONE_UDID:-}"
 if [[ $WITH_IPAD == true ]]; then boot_and_run iPad "${IPAD_UDID:-}"; fi

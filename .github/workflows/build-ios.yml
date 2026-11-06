@@ -22,7 +22,7 @@ jobs:
         run: |
           for test in scripts/*.test.mjs; do node "$test"; done
           python3 -c 'import plistlib; plistlib.load(open("ios/App/App/Info.plist", "rb"))'
-          bash -n scripts/mac-setup.sh scripts/mac-run-simulator.sh
+          bash -n scripts/mac-env.sh scripts/mac-setup.sh scripts/mac-run-simulator.sh
 
   build-simulator:
     needs: launcher-tests

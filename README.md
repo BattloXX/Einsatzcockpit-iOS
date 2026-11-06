@@ -32,7 +32,7 @@ P2 ist vorbereitet und wartet auf den Apple-Account. Push verwendet Firebase Mes
 
 ## Voraussetzungen und lokale Entwicklung
 
-Für die Node-Tests genügt Node.js 22, ohne zusätzliche Test-Abhängigkeiten. Native Builds benötigen macOS 26 Tahoe, Xcode 26 mit iOS-Simulator-Runtime, CocoaPods und Node.js 22. Die Build-Skripte sind für den Intel-Mac ausgelegt. MLKit enthält keine arm64-Simulator-Slices; deshalb bauen CI und lokale Skripte ausdrücklich `ARCHS=x86_64`. Das CI-Artefakt ist eine Simulator-App für Intel und keine auf einem iPhone installierbare IPA.
+Für die Node-Tests genügt Node.js 22, ohne zusätzliche Test-Abhängigkeiten. Native Builds benötigen macOS 15 Sequoia oder neuer, Xcode 26 mit iOS-Simulator-Runtime, CocoaPods und Node.js 22. Homebrew ist nicht nötig: Fehlende Werkzeuge installiert das Setup nach `~/.local`. Die Build-Skripte sind für den Intel-Mac ausgelegt. MLKit enthält keine arm64-Simulator-Slices; deshalb bauen CI und lokale Skripte ausdrücklich `ARCHS=x86_64`. Das CI-Artefakt ist eine Simulator-App für Intel und keine auf einem iPhone installierbare IPA.
 
 ```bash
 npm ci

@@ -4,13 +4,16 @@ set -euo pipefail
 REPO_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$REPO_DIR"
 if [[ $(uname -s) != Darwin ]]; then
-  echo 'Dieses Skript benötigt einen Intel-Mac mit macOS 26 Tahoe.' >&2
+  echo 'Dieses Skript benötigt einen Intel-Mac mit macOS 15 oder neuer.' >&2
   exit 1
 fi
-if [[ $(sw_vers -productVersion | cut -d. -f1) != 26 || $(uname -m) != x86_64 ]]; then
-  echo 'Benötigt: Intel-Mac (x86_64), macOS 26 Tahoe und Xcode 26.' >&2
+# Xcode 26 läuft ab macOS 15 Sequoia; Tahoe ist nicht auf allen Intel-Macs verfügbar.
+if (( $(sw_vers -productVersion | cut -d. -f1) < 15 )) || [[ $(uname -m) != x86_64 ]]; then
+  echo 'Benötigt: Intel-Mac (x86_64), macOS 15 oder neuer und Xcode 26.' >&2
   exit 1
 fi
+# shellcheck source=scripts/mac-env.sh
+source "$REPO_DIR/scripts/mac-env.sh"
 if [[ ! -d /Applications/Xcode.app ]] && ! compgen -G '/Applications/Xcode_26*.app' >/dev/null; then
   echo 'Xcode fehlt. Bitte Xcode 26 aus dem App Store installieren und einmal öffnen.' >&2
   exit 1
@@ -40,21 +43,12 @@ if ! xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1; then
   sudo xcodebuild -runFirstLaunch
 fi
 xcodebuild -version
-if ! command -v brew >/dev/null 2>&1; then
-  echo 'Homebrew fehlt. Bitte nach Anleitung unter https://brew.sh installieren und erneut starten.' >&2
-  exit 1
-fi
-if ! brew list --versions node@22 >/dev/null 2>&1; then
-  brew install node@22
-fi
-export PATH="$(brew --prefix node@22)/bin:$PATH"
-if [[ $(node -p 'process.versions.node.split(".")[0]') != 22 ]]; then
-  echo 'Node 22 konnte nicht aktiviert werden.' >&2
-  exit 1
-fi
-if ! command -v pod >/dev/null 2>&1; then
-  brew install cocoapods
-fi
+ensure_node
+ensure_cocoapods
+node --version
+pod --version
+# CocoaPods bricht ohne UTF-8-Locale ab.
+export LANG=${LANG:-en_US.UTF-8}
 npm ci
 if [[ ! -f assets/icon.png ]]; then cp assets/Logo-rot.png assets/icon.png; fi
 npx capacitor-assets generate --ios
